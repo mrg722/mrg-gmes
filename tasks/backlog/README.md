@@ -1,12 +1,12 @@
-# Task Backlog
+# Backlog de tareas
 
-Store planned agent tasks here.
+Aquí se guardan las tareas planificadas que todavía no se han iniciado.
 
-Each task should define:
+Cada tarea debería indicar:
 - ID
-- objective
-- responsible agent
-- dependencies
-- allowed files
-- acceptance criteria
-- tests
+- objetivo
+- agente responsable
+- dependencias
+- archivos permitidos
+- criterios de aceptación
+- tests necesarios

@@ -1,3 +1,3 @@
-# Blocked Tasks
+# Tareas bloqueadas
 
-Tasks waiting on a dependency or decision.
+Aquí se registran tareas que no pueden continuar por una dependencia, error o decisión pendiente.

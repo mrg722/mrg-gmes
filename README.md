@@ -1,31 +1,43 @@
 # District Fury
 
-Original 2D beat'em up / brawler developed primarily with C++17+, raylib and CMake.
+Videojuego 2D beat'em up / brawler original.
 
-## Development target
-PC first, then Web/WASM and Android.
+## Tecnologías
+- C++17+
+- raylib
+- CMake
 
-## Current milestone
+## Plataformas
+1. PC
+2. Web/WASM
+3. Android
+
+## Objetivo actual
 **V0.1 — Vertical Slice**
 
-The first goal is a small, fully playable slice containing:
-- Rayden
-- movement
-- basic attacks
-- enemy
-- damage/hitstun
+La primera meta es tener una pequeña versión completamente jugable con:
+- Rayden Cruz
+- movimiento
+- ataques básicos
+- enemigo
+- daño e hitstun
 - combo
 - HUD
-- win/game over
-- reproducible build
+- victoria / game over
+- compilación reproducible
 
-## Repository structure
+## Estructura
 
-- `src/` — C++ source
-- `assets/` — game assets
-- `data/` — configurable gameplay data
-- `tests/` — tests
-- `docs/` — documentation
-- `tasks/` — agent tasks
-- `reports/` — build/QA/agent reports
-- `.github/workflows/` — CI
+```text
+src/                    Código C++
+assets/                 Recursos del juego
+data/                   Datos configurables
+tests/                  Pruebas
+docs/                   Documentación adicional
+tasks/                  Tareas de agentes
+reports/                Informes de builds, QA y agentes
+.github/workflows/      Automatización CI
+```
+
+## Flujo de desarrollo
+GitHub es la fuente central de verdad. Los cambios de agentes deben realizarse mediante ramas y Pull Requests.

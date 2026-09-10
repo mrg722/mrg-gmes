@@ -1,3 +1,3 @@
 # Tests
 
-Tests for critical systems will live here.
+Aquí se almacenarán pruebas para sistemas críticos del juego.

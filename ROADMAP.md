@@ -1,29 +1,29 @@
-# District Fury — Roadmap
+# District Fury — Hoja de ruta
 
 ## V0.1 — Vertical Slice
-Rayden, movement, punch/kick, basic enemy, damage, hitstun, combo, HUD, win/game over and working build.
+Rayden, movimiento, ataques, enemigo básico, daño, hitstun, combo, HUD, victoria/game over y build funcional.
 
-## V0.2 — Combat Expansion
-More enemies, skills, AI improvements and VFX.
+## V0.2 — Expansión del combate
+Más enemigos, habilidades, mejoras de IA y VFX.
 
 ## V0.3 — Stage 1
-Slum District, Brakk, Stage Clear and progression.
+Slum District, Brakk "The Chain", Stage Clear y progresión básica.
 
 ## V0.4 — Stage 2
-Old Steel Yard and Grinder.
+Old Steel Yard y Grinder.
 
 ## V0.5 — Stage 3
-Astra Tower and Titan-X.
+Astra Tower y Titan-X.
 
-## V0.6 — Systems
-Menus, save/load, difficulty and balance.
+## V0.6 — Sistemas
+Menús completos, guardado/carga, dificultad y balance.
 
-## V0.7 — Polish
-Audio, VFX, optimization and polish.
+## V0.7 — Pulido
+Audio, VFX, optimización y pulido general.
 
-## V1.0 — PC Release
-Complete PC game, QA, documentation and reproducible build.
+## V1.0 — Versión PC
+Juego PC completo, QA, documentación y build reproducible.
 
-## Later
-- V1.1 WebAssembly
-- V1.2 Android
+## Posterior
+- V1.1 — WebAssembly
+- V1.2 — Android

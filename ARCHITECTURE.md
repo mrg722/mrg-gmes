@@ -1,11 +1,11 @@
-# District Fury — Architecture
+# District Fury — Arquitectura
 
-## Main technologies
+## Tecnologías principales
 - C++17+
 - raylib
 - CMake
 
-## Target structure
+## Estructura objetivo
 
 ```text
 src/
@@ -25,10 +25,11 @@ src/
 └── main.cpp
 ```
 
-## Principles
-- Keep gameplay systems modular.
-- Separate input, simulation, rendering and UI responsibilities where practical.
-- Keep hitbox/hurtbox and combat resolution independent from rendering.
-- Prefer reusable enemy/boss systems.
-- Prefer data-driven values for balance.
-- Keep platform-specific code isolated so Web/Android targets can be added later.
+## Principios
+- Mantener el gameplay modular.
+- Separar entrada, simulación, render y UI cuando sea práctico.
+- Mantener hitbox/hurtbox y resolución del combate independientes del render.
+- Diseñar enemigos y bosses con sistemas reutilizables.
+- Mantener los parámetros de balance configurables.
+- Aislar código específico de plataforma para facilitar Web y Android posteriormente.
+- Evitar dependencias innecesarias.

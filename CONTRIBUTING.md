@@ -1,26 +1,31 @@
-# Contributing to District Fury
+# District Fury — Cómo contribuir
 
-## Branch naming
-Use:
+## Ramas
+Usar:
 
-`feature/<task-id>-<short-name>`
+`feature/<task-id>-<nombre-corto>`
 
-Example:
+Ejemplo:
 
 `feature/DF-001-player-movement`
 
 ## Commits
-Use clear, focused messages such as:
-- `feat: add player movement`
-- `fix: correct hitstun duration`
-- `test: add combat damage tests`
-- `docs: update architecture`
+Usar mensajes claros y pequeños:
+
+- `feat: agregar movimiento del jugador`
+- `fix: corregir duración del hitstun`
+- `test: agregar pruebas de daño`
+- `docs: actualizar arquitectura`
 
 ## Pull Requests
-Every meaningful agent task should be reviewable through a Pull Request.
+Las tareas importantes de los agentes deben pasar por Pull Request.
 
-Before opening a PR:
-1. Build the project.
-2. Run relevant tests.
-3. Review changed files.
-4. Describe what changed and how it was verified.
+Antes del PR:
+1. Compilar.
+2. Ejecutar tests relevantes.
+3. Revisar archivos modificados.
+4. Explicar qué se cambió.
+5. Explicar cómo se verificó.
+
+## Regla
+No hacer cambios directamente en `main` cuando el flujo de trabajo de agentes utilice ramas y PR.

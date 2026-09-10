@@ -1,3 +1,3 @@
-# Completed Tasks
+# Tareas completadas
 
-Move completed task records here after review/merge.
+Aquí se pueden conservar registros de tareas terminadas después de su revisión y merge.

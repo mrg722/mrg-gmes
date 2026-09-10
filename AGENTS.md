@@ -1,16 +1,17 @@
-# District Fury — Agent Rules
+# District Fury — Reglas para agentes
 
-## Project
-Original 2D beat'em up/brawler built primarily with C++17+, raylib and CMake.
+## Proyecto
+District Fury es un videojuego 2D beat'em up/brawler original, desarrollado principalmente con C++17+, raylib y CMake.
 
-## Rules
-- Preserve original IP. Do not copy commercial characters, names, logos, sprites, music, sounds or other protected assets.
-- Read README.md, ROADMAP.md, ARCHITECTURE.md and GAME_DESIGN.md before major changes.
-- Keep code modular; do not put the whole game in main.cpp.
-- Prefer small, focused systems and data-driven configuration.
-- Avoid unnecessary dependencies.
-- Build after meaningful code changes.
-- Add/update tests for critical systems when reasonable.
-- Do not claim a feature works unless it was actually tested.
-- Use feature branches and Pull Requests for agent work.
-- Avoid simultaneous edits to the same files by multiple agents.
+## Reglas obligatorias
+- District Fury es una IP original. No copiar personajes, nombres, logos, sprites, música, sonidos, escenarios, textos ni otros assets protegidos de terceros.
+- Antes de cambios importantes, leer README.md, ROADMAP.md, ARCHITECTURE.md y GAME_DESIGN.md.
+- Mantener una arquitectura modular. No concentrar el juego completo en `main.cpp`.
+- Preferir sistemas pequeños, reutilizables y configurables por datos.
+- Evitar dependencias innecesarias.
+- Compilar después de cambios relevantes.
+- Crear o actualizar tests para sistemas críticos cuando corresponda.
+- Nunca afirmar que una función funciona sin haberla comprobado.
+- Los agentes deben trabajar mediante ramas y Pull Requests.
+- Evitar que dos agentes modifiquen simultáneamente los mismos archivos sin coordinación.
+- No realizar refactors masivos que no sean necesarios para la tarea.

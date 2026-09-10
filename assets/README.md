@@ -1,3 +1,4 @@
 # Assets
 
-Place original/licensed game assets in this directory.
+Aquí se almacenarán recursos originales o con licencia adecuada:
+sprites, animaciones, fondos, UI, VFX, audio y fuentes.

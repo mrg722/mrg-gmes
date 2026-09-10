@@ -1,42 +1,48 @@
-# District Fury — Game Design Foundation
+# District Fury — Base de diseño
 
-## Genre
-2D beat'em up / brawler with slight depth/lane movement.
+## Género
+Beat'em up 2D / brawler arcade con desplazamiento lateral y ligera profundidad por carriles.
 
-## Protagonist
-Rayden Cruz:
-- athletic/muscular
-- dark curly hair
-- blue glasses/visor
-- black sleeveless jacket
-- white shirt
-- dark/ripped jeans
-- black boots
-- metal hand protection
-- blue electric energy
+## Protagonista
+### Rayden Cruz
+- 24 años
+- atlético y musculoso
+- cabello oscuro rizado
+- lentes/visor azul
+- chaqueta negra sin mangas
+- camiseta blanca
+- jeans oscuros/rasgados
+- botas negras
+- protección/guantes metálicos
+- energía eléctrica azul
 
-## Core abilities
+## Habilidades
 - Punch Rush
 - Rising Kick
 - Energy Wave
 - Dash
 - Rage Mode
-- Finisher/Ultra
+- Finisher / Ultra
 
 ## Stages
 1. Slum District — Brakk "The Chain"
 2. Old Steel Yard — Grinder
 3. Astra Tower — Titan-X
 
-## Resources
-HP, SP, Rage, XP, coins, gems and level.
+## Recursos
+HP, SP, Rage, XP, coins, gems y level.
 
 ## Stage Clear
-Time, remaining HP, max combo, score and rank D→SSS.
+Mostrar tiempo, HP restante, combo máximo, score y rango D→SSS.
 
-## Controls
-PC:
-WASD movement, J punch, K kick, L energy, Shift dash, Space Rage, ESC pause.
+## Controles de PC
+- WASD: movimiento
+- J: punch
+- K: kick
+- L: energy
+- Shift: dash
+- Space: Rage
+- ESC: pausa
 
-Android:
-virtual joystick plus touch action buttons.
+## Android
+Joystick virtual + botones táctiles.

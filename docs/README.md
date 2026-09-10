@@ -1,3 +1,3 @@
-# Documentation
+# Documentación
 
-Additional project documentation.
+Documentación complementaria del proyecto.

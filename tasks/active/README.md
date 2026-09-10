@@ -1,3 +1,3 @@
-# Active Tasks
+# Tareas activas
 
-Tasks currently being worked on by agents.
+Aquí se registran las tareas que actualmente están siendo trabajadas por agentes.

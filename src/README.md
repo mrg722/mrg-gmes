@@ -1,3 +1,3 @@
-# Source
+# Código fuente
 
-C++ source code for District Fury will live here.
+El código C++ de District Fury vivirá en este directorio.
