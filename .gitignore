@@ -1,0 +1,36 @@
+# Build outputs
+/build/
+/build-*/
+/out/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/CTestTestfile.cmake
+/Testing/
+/compile_commands.json
+
+# CMake and package-manager artifacts
+/_deps/
+/.cache/
+/.tooling/
+
+# IDEs and editors
+/.vs/
+/.vscode/
+*.user
+*.suo
+*.vcxproj*
+*.sln
+*.code-workspace
+
+# Compiler and debugger outputs
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.dylib
+*.dSYM/
