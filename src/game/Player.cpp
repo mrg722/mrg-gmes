@@ -74,7 +74,7 @@ void Player::SetState(PlayerState newState) {
             break;
         case PlayerState::Defeat:
             animator.Play(clean ? AnimationClip{15, 15, 0.10f, false}
-                                : AnimationClip{0, 4, 0.10f, false});
+                                : AnimationClip{14, 14, 0.10f, false});
             break;
         case PlayerState::Attack:
             break;

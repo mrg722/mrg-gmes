@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "rendering/SpriteFrame.h"
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace district_fury {
@@ -26,11 +27,12 @@ public:
     bool isFinished;
     bool normalizedAtlas;
     std::vector<SpriteFrame> frames;
+    std::size_t clipFrameIndex;
 
     Animator()
         : texture{0}, cols(1), rows(1), currentFrame(0), timer(0.0f),
           currentClip{0, 0, 0.1f, true}, isPlaying(false), isFinished(true),
-          normalizedAtlas(false), frames() {}
+          normalizedAtlas(false), frames(), clipFrameIndex(0) {}
 
     void Init(Texture2D tex, int columns, int rws, bool normalized = false) {
         texture = tex;
@@ -42,6 +44,7 @@ public:
         isFinished = true;
         normalizedAtlas = normalized;
         frames.clear();
+        clipFrameIndex = 0;
     }
 
     void SetFrames(std::vector<SpriteFrame> metadata) {
@@ -60,10 +63,14 @@ public:
             currentClip.startFrame = clip.frames.front();
             currentClip.endFrame = clip.frames.back();
         }
-        currentClip.startFrame = std::clamp(clip.startFrame, 0, frameCount - 1);
+        currentClip.startFrame = std::clamp(currentClip.startFrame, 0, frameCount - 1);
         currentClip.endFrame = std::clamp(std::max(currentClip.startFrame, clip.endFrame), 0, frameCount - 1);
+        if (!clip.frames.empty()) {
+            currentClip.endFrame = std::clamp(clip.frames.back(), currentClip.startFrame, frameCount - 1);
+        }
         currentClip.frameDuration = std::max(0.016f, clip.frameDuration);
-        currentFrame = currentClip.startFrame;
+        clipFrameIndex = 0;
+        currentFrame = currentClip.frames.empty() ? currentClip.startFrame : currentClip.frames.front();
         timer = 0.0f;
         isPlaying = true;
         isFinished = false;
@@ -78,18 +85,29 @@ public:
                 : std::max(0.016f, frames[static_cast<std::size_t>(currentFrame)].duration);
             if (timer < duration) break;
             timer -= duration;
-            ++currentFrame;
-            if (currentFrame > currentClip.endFrame) {
+            const bool explicitSequence = !currentClip.frames.empty();
+            if (explicitSequence) {
+                ++clipFrameIndex;
+            } else {
+                ++currentFrame;
+            }
+            const bool clipEnded = explicitSequence
+                ? clipFrameIndex >= currentClip.frames.size()
+                : currentFrame > currentClip.endFrame;
+            if (clipEnded) {
                 if (currentClip.loop) {
-                    currentFrame = currentClip.frames.empty()
-                        ? currentClip.startFrame
-                        : currentClip.frames.front();
+                    clipFrameIndex = 0;
+                    currentFrame = explicitSequence
+                        ? currentClip.frames.front() : currentClip.startFrame;
                 } else {
-                    currentFrame = currentClip.endFrame;
+                    currentFrame = explicitSequence
+                        ? currentClip.frames.back() : currentClip.endFrame;
                     isFinished = true;
                     isPlaying = false;
                     break;
                 }
+            } else if (explicitSequence) {
+                currentFrame = currentClip.frames[clipFrameIndex];
             }
         }
     }
