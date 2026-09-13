@@ -1,6 +1,7 @@
 #pragma once
 #include "game/Types.h"
 #include "game/Player.h"
+#include "rendering/Animator.h"
 
 namespace district_fury {
 
@@ -18,14 +19,15 @@ public:
     Vector3D velocity;
     Facing facing;
     EnemyState state;
-    
+
     int hp;
     int maxHp;
     float stateTimer;
     bool hasHit;
+    Animator animator;
 
     Enemy();
-    
+
     void Init(Vector3D startPos);
     void Update(float dt, const Player& player);
     void Draw() const;

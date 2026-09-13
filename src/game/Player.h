@@ -1,5 +1,6 @@
 #pragma once
 #include "game/Types.h"
+#include "rendering/Animator.h"
 
 namespace district_fury {
 
@@ -20,16 +21,24 @@ public:
     
     int hp;
     int maxHp;
+    int sp;
+    int maxSp;
+    int rage;
+    int maxRage;
+    bool isRageMode;
     
     float stateTimer;
     int comboCount;
     bool hasHit;
+
+    Animator animator;
 
     Player();
     
     void Update(float dt);
     void Draw() const;
     void TakeDamage(int damage);
+    void SetState(PlayerState newState);
 };
 
 }
