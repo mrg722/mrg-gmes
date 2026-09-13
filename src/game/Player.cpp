@@ -50,22 +50,23 @@ void Player::SetState(PlayerState newState) {
     state = newState;
     hasHit = false;
 
+    const bool clean = animator.normalizedAtlas;
     switch (state) {
         case PlayerState::Idle:
-            animator.Play({0, 3, 0.12f, true});
+            animator.Play(clean ? AnimationClip{0, 3, 0.12f, true} : AnimationClip{0, 4, 0.12f, true});
             break;
         case PlayerState::Walk:
-            animator.Play({4, 7, 0.095f, true});
+            animator.Play(clean ? AnimationClip{4, 7, 0.095f, true} : AnimationClip{0, 4, 0.095f, true});
             break;
         case PlayerState::Dash:
-            animator.Play({14, 14, 0.08f, false});
+            animator.Play(clean ? AnimationClip{14, 14, 0.08f, false} : AnimationClip{0, 4, 0.055f, false});
             break;
         case PlayerState::Hit:
-            animator.Play({13, 13, 0.10f, false});
+            animator.Play(clean ? AnimationClip{13, 13, 0.10f, false} : AnimationClip{0, 4, 0.08f, false});
             stateTimer = 0.28f;
             break;
         case PlayerState::Defeat:
-            animator.Play({15, 15, 0.10f, false});
+            animator.Play(clean ? AnimationClip{15, 15, 0.10f, false} : AnimationClip{0, 4, 0.10f, false});
             break;
         case PlayerState::Attack:
             break;
@@ -172,31 +173,33 @@ void Player::Update(float dt) {
         return;
     }
 
-    auto beginAttack = [&](AttackType type, float duration, int startFrame, int endFrame, float frameDuration) {
+    auto beginAttack = [&](AttackType type, float duration, int cleanStart, int cleanEnd, int legacyStart, int legacyEnd, float frameDuration) {
         state = PlayerState::Attack;
         attackType = type;
         attackElapsed = 0.0f;
         attackDuration = duration;
         stateTimer = duration;
         hasHit = false;
+        const int startFrame = animator.normalizedAtlas ? cleanStart : legacyStart;
+        const int endFrame = animator.normalizedAtlas ? cleanEnd : legacyEnd;
         animator.Play({startFrame, endFrame, frameDuration, false});
     };
 
     if (IsKeyPressed(KEY_J)) {
         comboStep = (comboWindow > 0.0f) ? (comboStep + 1) % 3 : 0;
-        beginAttack(AttackType::Punch, 0.26f, 8, 9, 0.105f);
+        beginAttack(AttackType::Punch, 0.26f, 8, 9, 5, 9, 0.105f);
         return;
     }
 
     if (IsKeyPressed(KEY_K)) {
         comboStep = 3;
-        beginAttack(AttackType::Kick, 0.30f, 10, 11, 0.12f);
+        beginAttack(AttackType::Kick, 0.30f, 10, 11, 10, 14, 0.12f);
         return;
     }
 
     if (IsKeyPressed(KEY_L) && sp >= 20) {
         sp -= 20;
-        beginAttack(AttackType::Energy, 0.40f, 12, 12, 0.20f);
+        beginAttack(AttackType::Energy, 0.40f, 12, 12, 5, 9, 0.20f);
         return;
     }
 
@@ -285,7 +288,7 @@ void Player::TakeDamage(int damage) {
 void Player::Draw() const {
     const Vector2 screenPos = position.ToScreen();
     const float depthScale = DepthScale(position.y);
-    const float visualScale = animator.normalizedAtlas ? 2.35f * depthScale : 0.43f * depthScale;
+    const float visualScale = animator.normalizedAtlas ? 2.25f * depthScale : 0.43f * depthScale;
     DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
                 32.0f * depthScale, 9.0f * depthScale, {0, 0, 0, 150});
 
