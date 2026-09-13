@@ -1,6 +1,4 @@
 #include "rendering/AssetManager.h"
-#include <algorithm>
-#include <cmath>
 #include <string>
 #include <vector>
 
@@ -14,85 +12,23 @@ std::string ResolveAssetPath(const std::vector<std::string>& candidates) {
     return candidates.empty() ? std::string{} : candidates.front();
 }
 
-// Legacy JPG cleanup is intentionally isolated. Clean DF-006 RGBA assets are
-// loaded directly so their authored anti-aliased edges and effect alpha stay intact.
-Texture2D LoadLegacySpriteTexture(const std::string& path, int columns, int rows) {
-    Image image = LoadImage(path.c_str());
-    if (image.data == nullptr) return Texture2D{0};
-
-    ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    auto* pixels = static_cast<Color*>(image.data);
-    const int width = image.width;
-    const int height = image.height;
-    if (width <= 0 || height <= 0 || columns <= 0 || rows <= 0) {
-        UnloadImage(image);
+Texture2D LoadRequiredTexture(const char* key,
+                             const std::vector<std::string>& candidates,
+                             TextureFilter filter) {
+    const std::string path = ResolveAssetPath(candidates);
+    if (path.empty() || !FileExists(path.c_str())) {
+        TraceLog(LOG_WARNING, "District Fury asset missing: %s", key);
         return Texture2D{0};
     }
 
-    // Only remove pixels directly connected to each cell's border. This remains
-    // a fallback for the old JPG sheets; new assets are already clean RGBA.
-    for (int row = 0; row < rows; ++row) {
-        const int y0 = (row * height) / rows;
-        const int y1 = ((row + 1) * height) / rows;
-        for (int col = 0; col < columns; ++col) {
-            const int x0 = (col * width) / columns;
-            const int x1 = ((col + 1) * width) / columns;
-            const int cellWidth = x1 - x0;
-            const int cellHeight = y1 - y0;
-            if (cellWidth <= 2 || cellHeight <= 2) continue;
-
-            const Color key = pixels[y0 * width + x0];
-            std::vector<unsigned char> visited(static_cast<std::size_t>(cellWidth * cellHeight), 0);
-            std::vector<int> stack;
-            const auto idx = [cellWidth](int x, int y) { return y * cellWidth + x; };
-
-            const auto nearColor = [](const Color& a, const Color& b) {
-                return std::abs(static_cast<int>(a.r) - static_cast<int>(b.r)) +
-                       std::abs(static_cast<int>(a.g) - static_cast<int>(b.g)) +
-                       std::abs(static_cast<int>(a.b) - static_cast<int>(b.b)) <= 55;
-            };
-
-            auto visit = [&](int lx, int ly) {
-                if (lx < 0 || ly < 0 || lx >= cellWidth || ly >= cellHeight) return;
-                const int li = idx(lx, ly);
-                if (visited[static_cast<std::size_t>(li)]) return;
-                const Color pixel = pixels[(y0 + ly) * width + (x0 + lx)];
-                if (pixel.a != 0 && !nearColor(pixel, key)) return;
-                visited[static_cast<std::size_t>(li)] = 1;
-                stack.push_back(li);
-            };
-
-            for (int x = 0; x < cellWidth; ++x) {
-                visit(x, 0);
-                visit(x, cellHeight - 1);
-            }
-            for (int y = 0; y < cellHeight; ++y) {
-                visit(0, y);
-                visit(cellWidth - 1, y);
-            }
-
-            while (!stack.empty()) {
-                const int li = stack.back();
-                stack.pop_back();
-                const int lx = li % cellWidth;
-                const int ly = li / cellWidth;
-                pixels[(y0 + ly) * width + (x0 + lx)].a = 0;
-                visit(lx + 1, ly);
-                visit(lx - 1, ly);
-                visit(lx, ly + 1);
-                visit(lx, ly - 1);
-            }
-        }
+    Texture2D texture = LoadTexture(path.c_str());
+    if (texture.id == 0) {
+        TraceLog(LOG_WARNING, "District Fury asset failed to load: %s (%s)", key, path.c_str());
+        return Texture2D{0};
     }
 
-    Texture2D texture = LoadTextureFromImage(image);
-    UnloadImage(image);
+    SetTextureFilter(texture, filter);
     return texture;
-}
-
-Texture2D LoadCleanTexture(const std::string& path) {
-    if (!FileExists(path.c_str())) return Texture2D{0};
-    return LoadTexture(path.c_str());
 }
 
 }
@@ -100,79 +36,65 @@ Texture2D LoadCleanTexture(const std::string& path) {
 void AssetManager::LoadAll() {
     if (!textures.empty()) return;
 
-    const std::string background = ResolveAssetPath({
-        "assets/backgrounds/old_steel_yard_clean.jpg",
-        "../assets/backgrounds/old_steel_yard_clean.jpg",
-        "../../assets/backgrounds/old_steel_yard_clean.jpg",
-        "assets/backgrounds/bg_industrial.jpg",
-        "../assets/backgrounds/bg_industrial.jpg",
-        "../../assets/backgrounds/bg_industrial.jpg"
-    });
+    textures["bg_industrial"] = LoadRequiredTexture(
+        "old_steel_yard_clean",
+        {
+            "assets/backgrounds/old_steel_yard_clean.png",
+            "../assets/backgrounds/old_steel_yard_clean.png",
+            "../../assets/backgrounds/old_steel_yard_clean.png"
+        },
+        TEXTURE_FILTER_BILINEAR
+    );
 
-    const std::string raydenClean = ResolveAssetPath({
-        "assets/characters/rayden_clean.png",
-        "../assets/characters/rayden_clean.png",
-        "../../assets/characters/rayden_clean.png"
-    });
-    const std::string raydenLegacy = ResolveAssetPath({
-        "assets/characters/rayden_sheet.jpg",
-        "../assets/characters/rayden_sheet.jpg",
-        "../../assets/characters/rayden_sheet.jpg"
-    });
+    textures["rayden_clean"] = LoadRequiredTexture(
+        "rayden_clean",
+        {
+            "assets/characters/rayden_clean.png",
+            "../assets/characters/rayden_clean.png",
+            "../../assets/characters/rayden_clean.png"
+        },
+        TEXTURE_FILTER_POINT
+    );
 
-    const std::string enemyLegacy = ResolveAssetPath({
-        "assets/enemies/grinder_sheet.jpg",
-        "../assets/enemies/grinder_sheet.jpg",
-        "../../assets/enemies/grinder_sheet.jpg"
-    });
+    textures["punk_clean"] = LoadRequiredTexture(
+        "punk_clean",
+        {
+            "assets/enemies/punk_clean.png",
+            "../assets/enemies/punk_clean.png",
+            "../../assets/enemies/punk_clean.png"
+        },
+        TEXTURE_FILTER_POINT
+    );
 
-    const std::string punk = ResolveAssetPath({
-        "assets/enemies/punk_clean.png", "../assets/enemies/punk_clean.png",
-        "../../assets/enemies/punk_clean.png"
-    });
-    const std::string charger = ResolveAssetPath({
-        "assets/enemies/charger_clean.png", "../assets/enemies/charger_clean.png",
-        "../../assets/enemies/charger_clean.png"
-    });
-    const std::string brute = ResolveAssetPath({
-        "assets/enemies/brute_clean.png", "../assets/enemies/brute_clean.png",
-        "../../assets/enemies/brute_clean.png"
-    });
-    const std::string enforcer = ResolveAssetPath({
-        "assets/enemies/enforcer_clean.png", "../assets/enemies/enforcer_clean.png",
-        "../../assets/enemies/enforcer_clean.png"
-    });
-    const std::string vfx = ResolveAssetPath({
-        "assets/vfx/vfx_sheet.jpg",
-        "../assets/vfx/vfx_sheet.jpg",
-        "../../assets/vfx/vfx_sheet.jpg"
-    });
+    textures["charger_clean"] = LoadRequiredTexture(
+        "charger_clean",
+        {
+            "assets/enemies/charger_clean.png",
+            "../assets/enemies/charger_clean.png",
+            "../../assets/enemies/charger_clean.png"
+        },
+        TEXTURE_FILTER_POINT
+    );
 
-    textures["bg_industrial"] = LoadTexture(background.c_str());
-    if (textures["bg_industrial"].id != 0) {
-        SetTextureFilter(textures["bg_industrial"], TEXTURE_FILTER_BILINEAR);
-    }
+    textures["brute_clean"] = LoadRequiredTexture(
+        "brute_clean",
+        {
+            "assets/enemies/brute_clean.png",
+            "../assets/enemies/brute_clean.png",
+            "../../assets/enemies/brute_clean.png"
+        },
+        TEXTURE_FILTER_POINT
+    );
 
-    auto loadClean = [&](const std::string& key, const std::string& path) {
-        const Texture2D texture = LoadCleanTexture(path);
-        if (texture.id == 0) return false;
-        textures[key] = texture;
-        SetTextureFilter(textures[key], TEXTURE_FILTER_POINT);
-        return true;
-    };
-
-    if (!loadClean("rayden_clean", raydenClean)) {
-        textures["rayden_sheet"] = LoadLegacySpriteTexture(raydenLegacy, 5, 3);
-        if (textures["rayden_sheet"].id != 0) SetTextureFilter(textures["rayden_sheet"], TEXTURE_FILTER_POINT);
-    }
-
-    loadClean("punk_clean", punk);
-    loadClean("charger_clean", charger);
-    loadClean("brute_clean", brute);
-    loadClean("enforcer_clean", enforcer);
-
-    textures["vfx_sheet"] = LoadTexture(vfx.c_str());
-    if (textures["vfx_sheet"].id != 0) SetTextureFilter(textures["vfx_sheet"], TEXTURE_FILTER_POINT);
+    textures["enforcer_clean"] = LoadRequiredTexture(
+        "enforcer_clean",
+        {
+            "assets/enemies/enforcer_clean.png",
+            "../assets/enemies/enforcer_clean.png",
+            "../../assets/enemies/enforcer_clean.png"
+        },
+        TEXTURE_FILTER_POINT
+    );
 }
 
 void AssetManager::UnloadAll() {
