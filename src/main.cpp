@@ -1,6 +1,6 @@
 #include "raylib.h"
-
 #include "core/ApplicationState.h"
+#include "game/GameManager.h"
 
 int main() {
     constexpr int windowWidth = 1280;
@@ -9,6 +9,9 @@ int main() {
     InitWindow(windowWidth, windowHeight, "District Fury");
     SetTargetFPS(60);
 
+    district_fury::GameManager game;
+    game.Init();
+
     district_fury::core::ApplicationState state = district_fury::core::ApplicationState::Running;
     while (district_fury::core::shouldContinue(state)) {
         if (WindowShouldClose()) {
@@ -16,10 +19,11 @@ int main() {
             continue;
         }
 
+        float dt = GetFrameTime();
+        game.Update(dt);
+
         BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("District Fury", 48, 48, 32, RAYWHITE);
-        DrawText("Technical bootstrap", 48, 92, 20, LIGHTGRAY);
+        game.Draw();
         EndDrawing();
     }
 

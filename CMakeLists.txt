@@ -21,11 +21,16 @@ FetchContent_MakeAvailable(raylib)
 
 add_library(district_fury_core
     src/core/ApplicationState.cpp
+    src/game/Player.cpp
+    src/game/Enemy.cpp
+    src/game/Scene.cpp
+    src/game/GameManager.cpp
 )
 target_include_directories(district_fury_core PUBLIC src)
+target_link_libraries(district_fury_core PUBLIC raylib)
 
 add_executable(district_fury src/main.cpp)
-target_link_libraries(district_fury PRIVATE district_fury_core raylib)
+target_link_libraries(district_fury PRIVATE district_fury_core)
 
 include(CTest)
 if(BUILD_TESTING)
