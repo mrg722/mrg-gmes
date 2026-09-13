@@ -23,6 +23,7 @@ public:
     int hp;
     int maxHp;
     float stateTimer;
+    float attackElapsed;
     bool hasHit;
     Animator animator;
 
@@ -32,6 +33,7 @@ public:
     void Update(float dt, const Player& player);
     void Draw() const;
     void TakeDamage(int damage, Vector3D knockback);
+    bool AttackIsActive() const;
 };
 
 }
