@@ -5,6 +5,13 @@
 
 namespace district_fury {
 
+namespace {
+float DepthScale(float laneY) {
+    const float t = std::clamp((laneY - kLaneMinY) / (kLaneMaxY - kLaneMinY), 0.0f, 1.0f);
+    return 0.86f + 0.26f * t;
+}
+}
+
 Player::Player() {
     Reset();
 }
@@ -45,20 +52,20 @@ void Player::SetState(PlayerState newState) {
 
     switch (state) {
         case PlayerState::Idle:
-            animator.Play({0, 4, 0.12f, true});
+            animator.Play({0, 3, 0.12f, true});
             break;
         case PlayerState::Walk:
-            animator.Play({0, 4, 0.09f, true});
+            animator.Play({4, 7, 0.095f, true});
             break;
         case PlayerState::Dash:
-            animator.Play({0, 4, 0.055f, true});
+            animator.Play({14, 14, 0.08f, false});
             break;
         case PlayerState::Hit:
-            animator.Play({0, 4, 0.08f, false});
+            animator.Play({13, 13, 0.10f, false});
             stateTimer = 0.28f;
             break;
         case PlayerState::Defeat:
-            animator.Play({0, 4, 0.10f, false});
+            animator.Play({15, 15, 0.10f, false});
             break;
         case PlayerState::Attack:
             break;
@@ -67,9 +74,17 @@ void Player::SetState(PlayerState newState) {
 
 static void EnsurePlayerAnimator(Animator& animator) {
     if (animator.texture.id != 0) return;
-    Texture2D texture = AssetManager::Get().GetTexture("rayden_sheet");
-    if (texture.id != 0) {
-        animator.Init(texture, 5, 3);
+
+    Texture2D clean = AssetManager::Get().GetTexture("rayden_clean");
+    if (clean.id != 0) {
+        animator.Init(clean, 4, 4, true);
+        animator.Play({0, 3, 0.12f, true});
+        return;
+    }
+
+    Texture2D legacy = AssetManager::Get().GetTexture("rayden_sheet");
+    if (legacy.id != 0) {
+        animator.Init(legacy, 5, 3, false);
         animator.Play({0, 4, 0.12f, true});
     }
 }
@@ -169,19 +184,19 @@ void Player::Update(float dt) {
 
     if (IsKeyPressed(KEY_J)) {
         comboStep = (comboWindow > 0.0f) ? (comboStep + 1) % 3 : 0;
-        beginAttack(AttackType::Punch, 0.30f, 5, 9, 0.055f);
+        beginAttack(AttackType::Punch, 0.26f, 8, 9, 0.105f);
         return;
     }
 
     if (IsKeyPressed(KEY_K)) {
         comboStep = 3;
-        beginAttack(AttackType::Kick, 0.36f, 10, 14, 0.055f);
+        beginAttack(AttackType::Kick, 0.30f, 10, 11, 0.12f);
         return;
     }
 
     if (IsKeyPressed(KEY_L) && sp >= 20) {
         sp -= 20;
-        beginAttack(AttackType::Energy, 0.46f, 5, 9, 0.065f);
+        beginAttack(AttackType::Energy, 0.40f, 12, 12, 0.20f);
         return;
     }
 
@@ -200,9 +215,9 @@ void Player::Update(float dt) {
 
 bool Player::AttackIsActive() const {
     if (state != PlayerState::Attack) return false;
-    if (attackType == AttackType::Punch) return attackElapsed >= 0.075f && attackElapsed <= 0.205f;
-    if (attackType == AttackType::Kick) return attackElapsed >= 0.095f && attackElapsed <= 0.26f;
-    if (attackType == AttackType::Energy) return attackElapsed >= 0.15f && attackElapsed <= 0.37f;
+    if (attackType == AttackType::Punch) return attackElapsed >= 0.08f && attackElapsed <= 0.20f;
+    if (attackType == AttackType::Kick) return attackElapsed >= 0.08f && attackElapsed <= 0.23f;
+    if (attackType == AttackType::Energy) return attackElapsed >= 0.08f && attackElapsed <= 0.32f;
     return false;
 }
 
@@ -269,23 +284,25 @@ void Player::TakeDamage(int damage) {
 
 void Player::Draw() const {
     const Vector2 screenPos = position.ToScreen();
+    const float depthScale = DepthScale(position.y);
+    const float visualScale = animator.normalizedAtlas ? 2.35f * depthScale : 0.43f * depthScale;
     DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-                34.0f, 10.0f, {0, 0, 0, 150});
+                32.0f * depthScale, 9.0f * depthScale, {0, 0, 0, 150});
 
     if (animator.texture.id != 0) {
-        constexpr float kPlayerScale = 0.72f;
         Color tint = WHITE;
         if (state == PlayerState::Hit) tint = {255, 190, 190, 255};
         if (isRageMode) tint = {190, 220, 255, 255};
-        animator.Draw(screenPos, kPlayerScale, facing == Facing::Left, tint);
+        animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
 
         if (isRageMode) {
-            const float pulse = 40.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f;
-            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 58), pulse, {0, 170, 255, 110});
+            const float pulse = (34.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f) * depthScale;
+            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 58 * depthScale), pulse, {0, 170, 255, 110});
         }
     } else {
         Color c = state == PlayerState::Hit ? RED : state == PlayerState::Attack ? YELLOW : BLUE;
-        DrawRectangle(static_cast<int>(screenPos.x - 18), static_cast<int>(screenPos.y - 68), 36, 68, c);
+        DrawRectangle(static_cast<int>(screenPos.x - 18 * depthScale), static_cast<int>(screenPos.y - 68 * depthScale),
+                      static_cast<int>(36 * depthScale), static_cast<int>(68 * depthScale), c);
     }
 }
 
