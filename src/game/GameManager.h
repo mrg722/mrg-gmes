@@ -9,6 +9,7 @@ namespace district_fury {
 enum class GameFlowState {
     Start,
     Combat,
+    Pause,
     Win,
     GameOver
 };
@@ -18,6 +19,7 @@ struct DamageText {
     int amount;
     float timer;
     float maxTime;
+    bool critical;
 };
 
 struct Particle {
@@ -26,6 +28,7 @@ struct Particle {
     float timer;
     float maxTime;
     Color color;
+    float size;
 };
 
 class GameManager {
@@ -34,20 +37,24 @@ public:
     Enemy enemy;
     Scene scene;
     GameFlowState flowState;
-    
+
     std::vector<DamageText> damageTexts;
     std::vector<Particle> particles;
-    
+
     float hitstopTimer;
     float screenshakeTimer;
-    
+    float introTimer;
+    float comboTimer;
+    float elapsedTime;
+    int maxCombo;
+
     GameManager();
     void Init();
     void Update(float dt);
     void Draw() const;
-    
-    void SpawnDamageText(Vector3D pos, int damage);
-    void SpawnHitParticles(Vector3D pos);
+
+    void SpawnDamageText(Vector3D pos, int damage, bool critical = false);
+    void SpawnHitParticles(Vector3D pos, AttackType type, bool heavy);
     void DoHitstop(float duration);
     void DoScreenshake(float duration);
 };
