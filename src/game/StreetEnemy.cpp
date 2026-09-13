@@ -76,10 +76,38 @@ void EnsureAnimator(Animator& animator, StreetEnemyType type) {
         return;
     }
 
-    const Texture2D legacy = AssetManager::Get().GetTexture("grinder_sheet");
-    if (legacy.id != 0) {
-        animator.Init(legacy, 4, 3, false);
-        animator.Play({0, 3, 0.12f, true});
+}
+
+void DrawFallbackEnemy(Vector2 screenPos, const Stats& stats, StreetEnemyType type,
+                       float scale, Color tint) {
+    const float width = stats.bodyWidth * scale;
+    const float height = stats.bodyHeight * scale;
+    const int x = static_cast<int>(screenPos.x - width * 0.5f);
+    const int y = static_cast<int>(screenPos.y - height);
+    const int bodyWidth = static_cast<int>(width);
+    const int bodyHeight = static_cast<int>(height * 0.62f);
+    const int bodyY = y + static_cast<int>(height * 0.32f);
+
+    if (type == StreetEnemyType::Punk) {
+        DrawTriangle({static_cast<float>(x + bodyWidth / 2), static_cast<float>(y)},
+                      {static_cast<float>(x + bodyWidth), static_cast<float>(bodyY)},
+                      {static_cast<float>(x), static_cast<float>(bodyY)}, tint);
+        DrawRectangle(x + bodyWidth / 4, bodyY, bodyWidth / 2, bodyHeight, tint);
+    } else if (type == StreetEnemyType::Charger) {
+        DrawRectangle(x + bodyWidth / 5, bodyY, bodyWidth * 3 / 5, bodyHeight, tint);
+        DrawLine(x + bodyWidth / 5, bodyY + bodyHeight, x, static_cast<int>(screenPos.y), tint);
+        DrawLine(x + bodyWidth * 4 / 5, bodyY + bodyHeight, x + bodyWidth,
+                 static_cast<int>(screenPos.y), tint);
+    } else if (type == StreetEnemyType::Brute) {
+        DrawRectangle(x, bodyY, bodyWidth, bodyHeight, tint);
+        DrawCircle(x + bodyWidth / 2, y + static_cast<int>(height * 0.2f),
+                   bodyWidth * 0.24f, tint);
+    } else {
+        DrawRectangle(x + bodyWidth / 8, bodyY, bodyWidth * 3 / 4, bodyHeight, tint);
+        DrawRectangle(x + bodyWidth / 4, y, bodyWidth / 2, static_cast<int>(height * 0.32f), tint);
+        DrawRectangle(x, bodyY + bodyHeight / 4, bodyWidth / 6, bodyHeight / 2, tint);
+        DrawRectangle(x + bodyWidth * 5 / 6, bodyY + bodyHeight / 4,
+                      bodyWidth / 6, bodyHeight / 2, tint);
     }
 }
 
@@ -249,11 +277,14 @@ void StreetEnemy::TakeDamage(int damage, Vector3D knockback) {
     if (hp == 0) {
         state = StreetEnemyState::Defeat;
         stateTimer = 0.85f;
-        animator.Play({8, 10, 0.11f, false});
+        animator.isFinished = false;
+        animator.isPlaying = false;
+        animator.currentFrame = animator.frames.empty() ? animator.currentFrame :
+            std::min(animator.currentFrame, static_cast<int>(animator.frames.size()) - 1);
     } else {
         state = StreetEnemyState::Hit;
         stateTimer = 0.38f;
-        animator.Play({8, 10, 0.09f, false});
+        if (animator.texture.id != 0) animator.Play({0, 0, 0.09f, false});
     }
 }
 
@@ -279,13 +310,10 @@ void StreetEnemy::Draw() const {
         if (state == StreetEnemyState::Defeat) tint = {175, 175, 175, 255};
         animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
     } else {
-        DrawRectangle(
-            static_cast<int>(screenPos.x - 23.0f * depthScale),
-            static_cast<int>(screenPos.y - stats.bodyHeight * depthScale),
-            static_cast<int>(46.0f * depthScale),
-            static_cast<int>(stats.bodyHeight * depthScale),
-            stats.fallbackTint
-        );
+        const Color fallbackTint = state == StreetEnemyState::Hit ? WHITE
+            : state == StreetEnemyState::Defeat ? Color{110, 110, 115, 255}
+            : stats.fallbackTint;
+        DrawFallbackEnemy(screenPos, stats, type, depthScale, fallbackTint);
     }
 
     if (state != StreetEnemyState::Defeat) {

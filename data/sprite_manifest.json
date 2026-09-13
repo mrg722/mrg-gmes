@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "characters": {
+    "rayden": "assets/characters/rayden_clean.png"
+  },
+  "enemies": {
+    "punk": "assets/enemies/punk_clean.png",
+    "charger": "assets/enemies/charger_clean.png",
+    "brute": "assets/enemies/brute_clean.png",
+    "enforcer": "assets/enemies/enforcer_clean.png"
+  },
+  "legacyFallback": {
+    "rayden": "assets/characters/rayden_sheet.jpg",
+    "enemy": "assets/enemies/grinder_sheet.jpg"
+  }
+}
