@@ -21,12 +21,14 @@ public:
     AnimationClip currentClip;
     bool isPlaying;
     bool isFinished;
+    bool normalizedAtlas;
 
     Animator()
         : texture{0}, cols(1), rows(1), currentFrame(0), timer(0.0f),
-          currentClip{0, 0, 0.1f, true}, isPlaying(false), isFinished(true) {}
+          currentClip{0, 0, 0.1f, true}, isPlaying(false), isFinished(true),
+          normalizedAtlas(false) {}
 
-    void Init(Texture2D tex, int columns, int rws) {
+    void Init(Texture2D tex, int columns, int rws, bool normalized = false) {
         texture = tex;
         cols = std::max(1, columns);
         rows = std::max(1, rws);
@@ -34,12 +36,13 @@ public:
         timer = 0.0f;
         isPlaying = false;
         isFinished = true;
+        normalizedAtlas = normalized;
     }
 
     void Play(AnimationClip clip) {
         currentClip = clip;
-        currentClip.startFrame = std::max(0, clip.startFrame);
-        currentClip.endFrame = std::max(currentClip.startFrame, clip.endFrame);
+        currentClip.startFrame = std::clamp(clip.startFrame, 0, cols * rows - 1);
+        currentClip.endFrame = std::clamp(std::max(currentClip.startFrame, clip.endFrame), 0, cols * rows - 1);
         currentClip.frameDuration = std::max(0.016f, clip.frameDuration);
         currentFrame = currentClip.startFrame;
         timer = 0.0f;
@@ -73,33 +76,56 @@ public:
         const int col = safeFrame % cols;
         const int row = safeFrame / cols;
 
-        // Integer cell boundaries avoid fractional atlas coordinates. A one-pixel
-        // inset keeps bilinear filtering from sampling a neighbouring frame; the
-        // sprite textures themselves are loaded with point filtering as an extra guard.
         const int x0 = (col * texture.width) / cols;
         const int x1 = ((col + 1) * texture.width) / cols;
         const int y0 = (row * texture.height) / rows;
         const int y1 = ((row + 1) * texture.height) / rows;
-        const int inset = (x1 - x0 > 4 && y1 - y0 > 4) ? 1 : 0;
-
-        const float frameWidth = static_cast<float>((x1 - x0) - inset * 2);
-        const float frameHeight = static_cast<float>((y1 - y0) - inset * 2);
+        const float frameWidth = static_cast<float>(x1 - x0);
+        const float frameHeight = static_cast<float>(y1 - y0);
         if (frameWidth <= 1.0f || frameHeight <= 1.0f) return;
 
         Rectangle source = {
-            static_cast<float>(x0 + inset),
-            static_cast<float>(y0 + inset),
+            static_cast<float>(x0),
+            static_cast<float>(y0),
             flipX ? -frameWidth : frameWidth,
             frameHeight
         };
+
+        if (normalizedAtlas) {
+            // DF-005 clean atlases reserve identical cells and a common foot baseline.
+            // The visible body is normalized before runtime scaling, so every pose keeps
+            // the same apparent height and never appears to jump vertically.
+            constexpr float kBaselineRatio = 305.0f / 320.0f;
+            Rectangle dest = {
+                position.x,
+                position.y - frameHeight * scale * kBaselineRatio,
+                frameWidth * scale,
+                frameHeight * scale
+            };
+            const Vector2 origin = {dest.width * 0.5f, 0.0f};
+            DrawTexturePro(texture, source, dest, origin, 0.0f, tint);
+            return;
+        }
+
+        // Legacy/generated sheets remain supported as a compatibility path. Keep the
+        // safer integer atlas sampling and point-style source framing from DF-004.
+        const int inset = (x1 - x0 > 4 && y1 - y0 > 4) ? 1 : 0;
+        const float safeWidth = frameWidth - inset * 2.0f;
+        const float safeHeight = frameHeight - inset * 2.0f;
+        Rectangle safeSource = {
+            static_cast<float>(x0 + inset),
+            static_cast<float>(y0 + inset),
+            flipX ? -safeWidth : safeWidth,
+            safeHeight
+        };
         Rectangle dest = {
             position.x,
-            position.y,
-            frameWidth * scale,
-            frameHeight * scale
+            position.y - safeHeight * scale,
+            safeWidth * scale,
+            safeHeight * scale
         };
-        Vector2 origin = {dest.width * 0.5f, dest.height};
-        DrawTexturePro(texture, source, dest, origin, 0.0f, tint);
+        const Vector2 origin = {dest.width * 0.5f, 0.0f};
+        DrawTexturePro(texture, safeSource, dest, origin, 0.0f, tint);
     }
 };
 

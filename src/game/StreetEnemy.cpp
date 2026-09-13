@@ -22,22 +22,35 @@ struct Stats {
 Stats GetStats(StreetEnemyType type) {
     switch (type) {
         case StreetEnemyType::Brute:
-            return {130, 95.0f, 20.0f, 132.0f, 46.0f, 0.72f, 0.76f, {255, 175, 175, 255}, 64.0f, 122.0f};
+            return {130, 95.0f, 20.0f, 132.0f, 46.0f, 0.72f, 2.30f, {255, 175, 175, 255}, 66.0f, 118.0f};
         case StreetEnemyType::Charger:
-            return {72, 220.0f, 14.0f, 120.0f, 42.0f, 0.54f, 0.68f, {255, 215, 160, 255}, 52.0f, 108.0f};
+            return {72, 220.0f, 14.0f, 120.0f, 42.0f, 0.54f, 2.02f, {255, 215, 160, 255}, 52.0f, 104.0f};
         case StreetEnemyType::Enforcer:
-            return {190, 122.0f, 24.0f, 146.0f, 50.0f, 0.76f, 0.80f, {205, 190, 255, 255}, 66.0f, 130.0f};
+            return {190, 122.0f, 24.0f, 146.0f, 50.0f, 0.76f, 2.48f, {205, 190, 255, 255}, 68.0f, 126.0f};
         case StreetEnemyType::Punk:
         default:
-            return {58, 172.0f, 12.0f, 110.0f, 38.0f, 0.62f, 0.68f, WHITE, 52.0f, 108.0f};
+            return {58, 172.0f, 12.0f, 110.0f, 38.0f, 0.62f, 2.02f, WHITE, 52.0f, 104.0f};
     }
+}
+
+float DepthScale(float laneY) {
+    const float t = std::clamp((laneY - kLaneMinY) / (kLaneMaxY - kLaneMinY), 0.0f, 1.0f);
+    return 0.86f + 0.26f * t;
 }
 
 void EnsureAnimator(Animator& animator) {
     if (animator.texture.id != 0) return;
-    const Texture2D texture = AssetManager::Get().GetTexture("grinder_sheet");
-    if (texture.id != 0) {
-        animator.Init(texture, 4, 3);
+
+    const Texture2D clean = AssetManager::Get().GetTexture("grinder_clean");
+    if (clean.id != 0) {
+        animator.Init(clean, 4, 3, true);
+        animator.Play({0, 3, 0.12f, true});
+        return;
+    }
+
+    const Texture2D legacy = AssetManager::Get().GetTexture("grinder_sheet");
+    if (legacy.id != 0) {
+        animator.Init(legacy, 4, 3, false);
         animator.Play({0, 3, 0.12f, true});
     }
 }
@@ -132,10 +145,9 @@ void StreetEnemy::Update(float dt, const Player& player) {
 
     if (distance < 760.0f) {
         state = StreetEnemyState::Chase;
-        const float desiredSpeed = moveSpeed;
         if (distance > 0.001f) {
-            position.x += (dx / distance) * desiredSpeed * dt;
-            position.y += (dy / distance) * desiredSpeed * 0.72f * dt;
+            position.x += (dx / distance) * moveSpeed * dt;
+            position.y += (dy / distance) * moveSpeed * 0.72f * dt;
         }
         if (animator.isFinished || !animator.isPlaying || animator.currentFrame > 3) {
             animator.Play({0, 3, 0.12f, true});
@@ -194,7 +206,7 @@ void StreetEnemy::TakeDamage(int damage, Vector3D knockback) {
     if (hp == 0) {
         state = StreetEnemyState::Defeat;
         stateTimer = 0.85f;
-        animator.Play({8, 10, 0.11f, false});
+        animator.Play({11, 11, 0.11f, false});
     } else {
         state = StreetEnemyState::Hit;
         stateTimer = 0.38f;
@@ -206,26 +218,32 @@ void StreetEnemy::Draw() const {
     if (!active) return;
     const Stats stats = GetStats(type);
     const Vector2 screenPos = position.ToScreen();
+    const float depthScale = DepthScale(position.y);
+    const float visualScale = animator.normalizedAtlas ? stats.scale * depthScale : 0.84f * depthScale;
+
     DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-                stats.scale >= 0.78f ? 39.0f : 32.0f, 10.0f, {0, 0, 0, 145});
+                (stats.scale >= 2.30f ? 39.0f : 32.0f) * depthScale,
+                10.0f * depthScale, {0, 0, 0, 145});
 
     if (animator.texture.id != 0) {
         Color tint = stats.tint;
         if (state == StreetEnemyState::Hit) tint = {255, 215, 215, 255};
         if (state == StreetEnemyState::Defeat) tint = {180, 180, 180, 255};
-        animator.Draw(screenPos, stats.scale, facing == Facing::Left, tint);
+        animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
     } else {
-        DrawRectangle(static_cast<int>(screenPos.x - 22), static_cast<int>(screenPos.y - 78), 44, 78, PURPLE);
+        DrawRectangle(static_cast<int>(screenPos.x - 22 * depthScale),
+                      static_cast<int>(screenPos.y - 78 * depthScale),
+                      static_cast<int>(44 * depthScale), static_cast<int>(78 * depthScale), PURPLE);
     }
 
     if (state != StreetEnemyState::Defeat && hp < maxHp) {
-        const int width = stats.scale >= 0.78f ? 82 : 64;
+        const int width = stats.scale >= 2.30f ? 82 : 64;
         const int x = static_cast<int>(screenPos.x - width * 0.5f);
-        const int y = static_cast<int>(screenPos.y - stats.bodyHeight - 10.0f);
+        const int y = static_cast<int>(screenPos.y - stats.bodyHeight * depthScale - 10.0f);
         DrawRectangle(x, y, width, 6, {20, 20, 20, 220});
         DrawRectangle(x, y, static_cast<int>(width * (static_cast<float>(hp) / maxHp)), 6,
-                      stats.scale >= 0.78f ? RED : GREEN);
+                      stats.scale >= 2.30f ? RED : GREEN);
     }
 }
 
-} // namespace district_fury
+}
