@@ -1,6 +1,8 @@
 #pragma once
 #include "raylib.h"
+#include "rendering/SpriteFrame.h"
 #include <algorithm>
+#include <vector>
 
 namespace district_fury {
 
@@ -9,6 +11,7 @@ struct AnimationClip {
     int endFrame;
     float frameDuration;
     bool loop;
+    std::vector<int> frames = {};
 };
 
 class Animator {
@@ -22,11 +25,12 @@ public:
     bool isPlaying;
     bool isFinished;
     bool normalizedAtlas;
+    std::vector<SpriteFrame> frames;
 
     Animator()
         : texture{0}, cols(1), rows(1), currentFrame(0), timer(0.0f),
           currentClip{0, 0, 0.1f, true}, isPlaying(false), isFinished(true),
-          normalizedAtlas(false) {}
+          normalizedAtlas(false), frames() {}
 
     void Init(Texture2D tex, int columns, int rws, bool normalized = false) {
         texture = tex;
@@ -37,11 +41,25 @@ public:
         isPlaying = false;
         isFinished = true;
         normalizedAtlas = normalized;
+        frames.clear();
+    }
+
+    void SetFrames(std::vector<SpriteFrame> metadata) {
+        frames = std::move(metadata);
+        if (!frames.empty()) {
+            currentFrame = std::clamp(currentFrame, 0, static_cast<int>(frames.size()) - 1);
+        }
     }
 
     void Play(AnimationClip clip) {
-        const int frameCount = std::max(1, cols * rows);
+        const int frameCount = frames.empty()
+            ? std::max(1, cols * rows)
+            : static_cast<int>(frames.size());
         currentClip = clip;
+        if (!clip.frames.empty()) {
+            currentClip.startFrame = clip.frames.front();
+            currentClip.endFrame = clip.frames.back();
+        }
         currentClip.startFrame = std::clamp(clip.startFrame, 0, frameCount - 1);
         currentClip.endFrame = std::clamp(std::max(currentClip.startFrame, clip.endFrame), 0, frameCount - 1);
         currentClip.frameDuration = std::max(0.016f, clip.frameDuration);
@@ -54,12 +72,18 @@ public:
     void Update(float dt) {
         if (!isPlaying || isFinished) return;
         timer += std::max(0.0f, dt);
-        while (timer >= currentClip.frameDuration) {
-            timer -= currentClip.frameDuration;
+        while (true) {
+            const float duration = frames.empty()
+                ? currentClip.frameDuration
+                : std::max(0.016f, frames[static_cast<std::size_t>(currentFrame)].duration);
+            if (timer < duration) break;
+            timer -= duration;
             ++currentFrame;
             if (currentFrame > currentClip.endFrame) {
                 if (currentClip.loop) {
-                    currentFrame = currentClip.startFrame;
+                    currentFrame = currentClip.frames.empty()
+                        ? currentClip.startFrame
+                        : currentClip.frames.front();
                 } else {
                     currentFrame = currentClip.endFrame;
                     isFinished = true;
@@ -73,8 +97,31 @@ public:
     void Draw(Vector2 feetPosition, float scale, bool flipX, Color tint = WHITE) const {
         if (texture.id == 0 || texture.width <= 0 || texture.height <= 0) return;
 
-        const int frameCount = std::max(1, cols * rows);
+        const int frameCount = frames.empty()
+            ? std::max(1, cols * rows)
+            : static_cast<int>(frames.size());
         const int safeFrame = std::clamp(currentFrame, 0, frameCount - 1);
+
+        if (!frames.empty()) {
+            const SpriteFrame& frame = frames[static_cast<std::size_t>(safeFrame)];
+            const float width = frame.width * scale;
+            const float height = frame.height * scale;
+            const Rectangle source = {
+                frame.source.x,
+                frame.source.y,
+                flipX ? -frame.source.width : frame.source.width,
+                frame.source.height
+            };
+            const Rectangle dest = {
+                feetPosition.x - frame.pivotX * scale,
+                feetPosition.y - frame.pivotY * scale,
+                width,
+                height
+            };
+            DrawTexturePro(texture, source, dest, {0.0f, 0.0f}, 0.0f, tint);
+            return;
+        }
+
         const int col = safeFrame % cols;
         const int row = safeFrame / cols;
 

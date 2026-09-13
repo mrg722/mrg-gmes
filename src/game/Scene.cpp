@@ -1,4 +1,5 @@
 #include "game/Scene.h"
+#include "game/Types.h"
 #include "rendering/AssetManager.h"
 #include "raylib.h"
 #include <algorithm>

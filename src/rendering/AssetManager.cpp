@@ -103,8 +103,10 @@ void AssetManager::LoadAll() {
     const std::string background = ResolveAssetPath({
         "assets/backgrounds/old_steel_yard_clean.jpg",
         "../assets/backgrounds/old_steel_yard_clean.jpg",
+        "../../assets/backgrounds/old_steel_yard_clean.jpg",
         "assets/backgrounds/bg_industrial.jpg",
-        "../assets/backgrounds/bg_industrial.jpg"
+        "../assets/backgrounds/bg_industrial.jpg",
+        "../../assets/backgrounds/bg_industrial.jpg"
     });
 
     const std::string raydenClean = ResolveAssetPath({
@@ -128,7 +130,11 @@ void AssetManager::LoadAll() {
     const std::string charger = ResolveAssetPath({"assets/enemies/charger_clean.png", "../assets/enemies/charger_clean.png"});
     const std::string brute = ResolveAssetPath({"assets/enemies/brute_clean.png", "../assets/enemies/brute_clean.png"});
     const std::string enforcer = ResolveAssetPath({"assets/enemies/enforcer_clean.png", "../assets/enemies/enforcer_clean.png"});
-    const std::string vfx = ResolveAssetPath({"assets/vfx/vfx_sheet.jpg", "../assets/vfx/vfx_sheet.jpg"});
+    const std::string vfx = ResolveAssetPath({
+        "assets/vfx/vfx_sheet.jpg",
+        "../assets/vfx/vfx_sheet.jpg",
+        "../../assets/vfx/vfx_sheet.jpg"
+    });
 
     textures["bg_industrial"] = LoadTexture(background.c_str());
     if (textures["bg_industrial"].id != 0) {

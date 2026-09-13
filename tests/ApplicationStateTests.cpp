@@ -1,11 +1,15 @@
 #include "core/ApplicationState.h"
 #include "game/Types.h"
+#include "rendering/Animator.h"
 
 #include <cstdlib>
 #include <iostream>
 
 int main() {
     using district_fury::CombatBox;
+    using district_fury::AnimationClip;
+    using district_fury::Animator;
+    using district_fury::SpriteFrame;
     using district_fury::core::ApplicationState;
     using district_fury::core::shouldContinue;
 
@@ -30,6 +34,23 @@ int main() {
 
     if (player.Intersects(miss)) {
         std::cerr << "Separated combat boxes must not intersect.\n";
+        return EXIT_FAILURE;
+    }
+
+    Animator animator;
+    animator.SetFrames({
+        SpriteFrame{{0.0f, 0.0f, 32.0f, 64.0f}, 32.0f, 64.0f, 16.0f, 64.0f, 0.05f},
+        SpriteFrame{{32.0f, 0.0f, 40.0f, 64.0f}, 40.0f, 64.0f, 20.0f, 64.0f, 0.20f}
+    });
+    animator.Play(AnimationClip{0, 1, 0.1f, false});
+    animator.Update(0.06f);
+    if (animator.currentFrame != 1) {
+        std::cerr << "Frame metadata must advance the animator.\n";
+        return EXIT_FAILURE;
+    }
+    animator.Update(0.21f);
+    if (!animator.isFinished || animator.currentFrame != 1) {
+        std::cerr << "Non-looping animation must freeze on its final frame.\n";
         return EXIT_FAILURE;
     }
 

@@ -37,6 +37,16 @@ Stats GetStats(StreetEnemyType type) {
     }
 }
 
+Color ThreatColor(StreetEnemyType type) {
+    switch (type) {
+        case StreetEnemyType::Brute: return {220, 140, 70, 255};
+        case StreetEnemyType::Charger: return {90, 155, 220, 255};
+        case StreetEnemyType::Enforcer: return {235, 185, 70, 255};
+        case StreetEnemyType::Punk:
+        default: return {225, 65, 80, 255};
+    }
+}
+
 float DepthScale(float laneY) {
     const float t = std::clamp(
         (laneY - kLaneMinY) / (kLaneMaxY - kLaneMinY),
