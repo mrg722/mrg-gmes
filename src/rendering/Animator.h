@@ -1,6 +1,8 @@
 #pragma once
 #include "raylib.h"
+#include "rendering/SpriteFrame.h"
 #include <algorithm>
+#include <vector>
 
 namespace district_fury {
 
@@ -9,6 +11,7 @@ struct AnimationClip {
     int endFrame;
     float frameDuration;
     bool loop;
+    std::vector<int> frames = {};
 };
 
 class Animator {
@@ -22,11 +25,12 @@ public:
     bool isPlaying;
     bool isFinished;
     bool normalizedAtlas;
+    std::vector<SpriteFrame> frames;
 
     Animator()
         : texture{0}, cols(1), rows(1), currentFrame(0), timer(0.0f),
           currentClip{0, 0, 0.1f, true}, isPlaying(false), isFinished(true),
-          normalizedAtlas(false) {}
+          normalizedAtlas(false), frames() {}
 
     void Init(Texture2D tex, int columns, int rws, bool normalized = false) {
         texture = tex;
@@ -37,12 +41,27 @@ public:
         isPlaying = false;
         isFinished = true;
         normalizedAtlas = normalized;
+        frames.clear();
+    }
+
+    void SetFrames(std::vector<SpriteFrame> metadata) {
+        frames = std::move(metadata);
+        if (!frames.empty()) {
+            currentFrame = std::clamp(currentFrame, 0, static_cast<int>(frames.size()) - 1);
+        }
     }
 
     void Play(AnimationClip clip) {
+        const int frameCount = frames.empty()
+            ? std::max(1, cols * rows)
+            : static_cast<int>(frames.size());
         currentClip = clip;
-        currentClip.startFrame = std::clamp(clip.startFrame, 0, cols * rows - 1);
-        currentClip.endFrame = std::clamp(std::max(currentClip.startFrame, clip.endFrame), 0, cols * rows - 1);
+        if (!clip.frames.empty()) {
+            currentClip.startFrame = clip.frames.front();
+            currentClip.endFrame = clip.frames.back();
+        }
+        currentClip.startFrame = std::clamp(clip.startFrame, 0, frameCount - 1);
+        currentClip.endFrame = std::clamp(std::max(currentClip.startFrame, clip.endFrame), 0, frameCount - 1);
         currentClip.frameDuration = std::max(0.016f, clip.frameDuration);
         currentFrame = currentClip.startFrame;
         timer = 0.0f;
@@ -53,12 +72,18 @@ public:
     void Update(float dt) {
         if (!isPlaying || isFinished) return;
         timer += std::max(0.0f, dt);
-        while (timer >= currentClip.frameDuration) {
-            timer -= currentClip.frameDuration;
+        while (true) {
+            const float duration = frames.empty()
+                ? currentClip.frameDuration
+                : std::max(0.016f, frames[static_cast<std::size_t>(currentFrame)].duration);
+            if (timer < duration) break;
+            timer -= duration;
             ++currentFrame;
             if (currentFrame > currentClip.endFrame) {
                 if (currentClip.loop) {
-                    currentFrame = currentClip.startFrame;
+                    currentFrame = currentClip.frames.empty()
+                        ? currentClip.startFrame
+                        : currentClip.frames.front();
                 } else {
                     currentFrame = currentClip.endFrame;
                     isFinished = true;
@@ -69,10 +94,34 @@ public:
         }
     }
 
-    void Draw(Vector2 position, float scale, bool flipX, Color tint = WHITE) const {
+    void Draw(Vector2 feetPosition, float scale, bool flipX, Color tint = WHITE) const {
         if (texture.id == 0 || texture.width <= 0 || texture.height <= 0) return;
 
-        const int safeFrame = std::clamp(currentFrame, 0, cols * rows - 1);
+        const int frameCount = frames.empty()
+            ? std::max(1, cols * rows)
+            : static_cast<int>(frames.size());
+        const int safeFrame = std::clamp(currentFrame, 0, frameCount - 1);
+
+        if (!frames.empty()) {
+            const SpriteFrame& frame = frames[static_cast<std::size_t>(safeFrame)];
+            const float width = frame.width * scale;
+            const float height = frame.height * scale;
+            const Rectangle source = {
+                frame.source.x,
+                frame.source.y,
+                flipX ? -frame.source.width : frame.source.width,
+                frame.source.height
+            };
+            const Rectangle dest = {
+                feetPosition.x - frame.pivotX * scale,
+                feetPosition.y - frame.pivotY * scale,
+                width,
+                height
+            };
+            DrawTexturePro(texture, source, dest, {0.0f, 0.0f}, 0.0f, tint);
+            return;
+        }
+
         const int col = safeFrame % cols;
         const int row = safeFrame / cols;
 
@@ -91,41 +140,38 @@ public:
             frameHeight
         };
 
+        // Clean DF-006 atlases are exported to fixed cells and treated as authored
+        // artwork. The character's world position is its foot anchor, not its center.
         if (normalizedAtlas) {
-            // DF-005 clean atlases reserve identical cells and a common foot baseline.
-            // The visible body is normalized before runtime scaling, so every pose keeps
-            // the same apparent height and never appears to jump vertically.
-            constexpr float kBaselineRatio = 305.0f / 320.0f;
-            Rectangle dest = {
-                position.x,
-                position.y - frameHeight * scale * kBaselineRatio,
-                frameWidth * scale,
-                frameHeight * scale
+            const float width = frameWidth * scale;
+            const float height = frameHeight * scale;
+            const Rectangle dest = {
+                feetPosition.x - width * 0.5f,
+                feetPosition.y - height,
+                width,
+                height
             };
-            const Vector2 origin = {dest.width * 0.5f, 0.0f};
-            DrawTexturePro(texture, source, dest, origin, 0.0f, tint);
+            DrawTexturePro(texture, source, dest, {0.0f, 0.0f}, 0.0f, tint);
             return;
         }
 
-        // Legacy/generated sheets remain supported as a compatibility path. Keep the
-        // safer integer atlas sampling and point-style source framing from DF-004.
+        // Legacy fallback: inset one pixel to reduce neighbouring-frame sampling.
         const int inset = (x1 - x0 > 4 && y1 - y0 > 4) ? 1 : 0;
         const float safeWidth = frameWidth - inset * 2.0f;
         const float safeHeight = frameHeight - inset * 2.0f;
-        Rectangle safeSource = {
+        const Rectangle safeSource = {
             static_cast<float>(x0 + inset),
             static_cast<float>(y0 + inset),
             flipX ? -safeWidth : safeWidth,
             safeHeight
         };
-        Rectangle dest = {
-            position.x,
-            position.y - safeHeight * scale,
+        const Rectangle dest = {
+            feetPosition.x - safeWidth * scale * 0.5f,
+            feetPosition.y - safeHeight * scale,
             safeWidth * scale,
             safeHeight * scale
         };
-        const Vector2 origin = {dest.width * 0.5f, 0.0f};
-        DrawTexturePro(texture, safeSource, dest, origin, 0.0f, tint);
+        DrawTexturePro(texture, safeSource, dest, {0.0f, 0.0f}, 0.0f, tint);
     }
 };
 
