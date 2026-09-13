@@ -63,6 +63,40 @@ void DrawAtmosphere(float cameraX) {
     }
 }
 
+void DrawFarLayer(float cameraX) {
+    for (int i = -2; i < 9; ++i) {
+        const float x = TileWorldX(cameraX, static_cast<float>(i), 0.20f);
+        const float height = 90.0f + static_cast<float>((i * 31 + 400) % 130);
+        DrawRectangle(static_cast<int>(x), static_cast<int>(430.0f - height), 170,
+                      static_cast<int>(height), {11, 25, 31, 145});
+        DrawRectangle(static_cast<int>(x + 42.0f), static_cast<int>(425.0f - height), 12,
+                      static_cast<int>(height * 0.35f), {18, 32, 37, 145});
+    }
+}
+
+void DrawMidLayer(float cameraX) {
+    for (int i = -2; i < 8; ++i) {
+        const float x = TileWorldX(cameraX, static_cast<float>(i), 0.46f);
+        DrawRectangle(static_cast<int>(x), 430, 240, 170, {24, 35, 38, 175});
+        DrawRectangle(static_cast<int>(x + 20.0f), 452, 200, 7, {145, 81, 38, 125});
+        DrawRectangle(static_cast<int>(x + 72.0f), 392, 8, 42, {44, 53, 52, 190});
+        DrawRectangle(static_cast<int>(x + 156.0f), 405, 7, 27, {44, 53, 52, 190});
+    }
+}
+
+void DrawPlayLayer(float cameraX) {
+    const float left = cameraX - 900.0f;
+    const float width = 3080.0f;
+    DrawRectangleGradientV(static_cast<int>(left), 620, static_cast<int>(width), 100,
+                           {37, 43, 44, 135}, {8, 12, 15, 210});
+    for (int i = -5; i < 18; ++i) {
+        const float x = TileWorldX(cameraX, static_cast<float>(i), 1.0f) + 110.0f;
+        DrawEllipse(static_cast<int>(x), 672, 44.0f, 5.0f, {95, 145, 153, 34});
+        DrawLine(static_cast<int>(x - 28.0f), 675, static_cast<int>(x + 28.0f), 675,
+                 {148, 183, 180, 22});
+    }
+}
+
 }
 
 void Scene::Init() {
@@ -88,6 +122,9 @@ void Scene::DrawBackground(float cameraX) const {
             );
         }
 
+        DrawFarLayer(cameraX);
+        DrawMidLayer(cameraX);
+        DrawPlayLayer(cameraX);
         DrawAtmosphere(cameraX);
         return;
     }
@@ -112,6 +149,7 @@ void Scene::DrawBackground(float cameraX) const {
         static_cast<int>(left), 432, static_cast<int>(width), 288,
         {38, 40, 43, 255}, {14, 16, 18, 255}
     );
+    DrawPlayLayer(cameraX);
 }
 
 void Scene::DrawForeground(float cameraX) const {

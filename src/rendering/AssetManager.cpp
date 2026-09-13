@@ -126,10 +126,22 @@ void AssetManager::LoadAll() {
         "../../assets/enemies/grinder_sheet.jpg"
     });
 
-    const std::string punk = ResolveAssetPath({"assets/enemies/punk_clean.png", "../assets/enemies/punk_clean.png"});
-    const std::string charger = ResolveAssetPath({"assets/enemies/charger_clean.png", "../assets/enemies/charger_clean.png"});
-    const std::string brute = ResolveAssetPath({"assets/enemies/brute_clean.png", "../assets/enemies/brute_clean.png"});
-    const std::string enforcer = ResolveAssetPath({"assets/enemies/enforcer_clean.png", "../assets/enemies/enforcer_clean.png"});
+    const std::string punk = ResolveAssetPath({
+        "assets/enemies/punk_clean.png", "../assets/enemies/punk_clean.png",
+        "../../assets/enemies/punk_clean.png"
+    });
+    const std::string charger = ResolveAssetPath({
+        "assets/enemies/charger_clean.png", "../assets/enemies/charger_clean.png",
+        "../../assets/enemies/charger_clean.png"
+    });
+    const std::string brute = ResolveAssetPath({
+        "assets/enemies/brute_clean.png", "../assets/enemies/brute_clean.png",
+        "../../assets/enemies/brute_clean.png"
+    });
+    const std::string enforcer = ResolveAssetPath({
+        "assets/enemies/enforcer_clean.png", "../assets/enemies/enforcer_clean.png",
+        "../../assets/enemies/enforcer_clean.png"
+    });
     const std::string vfx = ResolveAssetPath({
         "assets/vfx/vfx_sheet.jpg",
         "../assets/vfx/vfx_sheet.jpg",
@@ -154,22 +166,10 @@ void AssetManager::LoadAll() {
         if (textures["rayden_sheet"].id != 0) SetTextureFilter(textures["rayden_sheet"], TEXTURE_FILTER_POINT);
     }
 
-    if (!loadClean("punk_clean", punk)) {
-        textures["punk_clean"] = LoadLegacySpriteTexture(enemyLegacy, 4, 3);
-        if (textures["punk_clean"].id != 0) SetTextureFilter(textures["punk_clean"], TEXTURE_FILTER_POINT);
-    }
-    if (!loadClean("charger_clean", charger)) {
-        textures["charger_clean"] = LoadLegacySpriteTexture(enemyLegacy, 4, 3);
-        if (textures["charger_clean"].id != 0) SetTextureFilter(textures["charger_clean"], TEXTURE_FILTER_POINT);
-    }
-    if (!loadClean("brute_clean", brute)) {
-        textures["brute_clean"] = LoadLegacySpriteTexture(enemyLegacy, 4, 3);
-        if (textures["brute_clean"].id != 0) SetTextureFilter(textures["brute_clean"], TEXTURE_FILTER_POINT);
-    }
-    if (!loadClean("enforcer_clean", enforcer)) {
-        textures["enforcer_clean"] = LoadLegacySpriteTexture(enemyLegacy, 4, 3);
-        if (textures["enforcer_clean"].id != 0) SetTextureFilter(textures["enforcer_clean"], TEXTURE_FILTER_POINT);
-    }
+    loadClean("punk_clean", punk);
+    loadClean("charger_clean", charger);
+    loadClean("brute_clean", brute);
+    loadClean("enforcer_clean", enforcer);
 
     textures["vfx_sheet"] = LoadTexture(vfx.c_str());
     if (textures["vfx_sheet"].id != 0) SetTextureFilter(textures["vfx_sheet"], TEXTURE_FILTER_POINT);
