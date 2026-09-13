@@ -10,6 +10,11 @@ constexpr float kMinX = 50.0f;
 constexpr float kMaxX = 1230.0f;
 constexpr float kMinLane = 450.0f;
 constexpr float kMaxLane = 700.0f;
+
+float DepthScale(float laneY) {
+    const float t = std::clamp((laneY - kMinLane) / (kMaxLane - kMinLane), 0.0f, 1.0f);
+    return 0.86f + 0.26f * t;
+}
 }
 
 Enemy::Enemy() {
@@ -30,12 +35,19 @@ void Enemy::Init(Vector3D startPos) {
 }
 
 static void EnsureEnemyAnimator(Animator& animator) {
-    if (animator.texture.id == 0) {
-        Texture2D texture = AssetManager::Get().GetTexture("grinder_sheet");
-        if (texture.id != 0) {
-            animator.Init(texture, 4, 3);
-            animator.Play({0, 3, 0.12f, true});
-        }
+    if (animator.texture.id != 0) return;
+
+    Texture2D clean = AssetManager::Get().GetTexture("grinder_clean");
+    if (clean.id != 0) {
+        animator.Init(clean, 4, 3, true);
+        animator.Play({0, 3, 0.12f, true});
+        return;
+    }
+
+    Texture2D legacy = AssetManager::Get().GetTexture("grinder_sheet");
+    if (legacy.id != 0) {
+        animator.Init(legacy, 4, 3, false);
+        animator.Play({0, 3, 0.12f, true});
     }
 }
 
@@ -130,25 +142,26 @@ void Enemy::TakeDamage(int damage, Vector3D knockback) {
 
 void Enemy::Draw() const {
     const Vector2 screenPos = position.ToScreen();
+    const float depthScale = DepthScale(position.y);
+    const float visualScale = animator.normalizedAtlas ? 2.02f * depthScale : 0.86f * depthScale;
     DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-                44.0f, 13.0f, {0, 0, 0, 145});
+                38.0f * depthScale, 11.0f * depthScale, {0, 0, 0, 145});
 
     if (animator.texture.id != 0) {
         Color tint = WHITE;
         if (state == EnemyState::Hit) tint = {255, 215, 215, 255};
-        if (state == EnemyState::Defeat) tint = {210, 210, 210, 255};
-        animator.Draw(screenPos, 1.50f, facing == Facing::Left, tint);
+        if (state == EnemyState::Defeat) tint = {180, 180, 180, 255};
+        animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
     } else {
         Color c = state == EnemyState::Hit ? WHITE : state == EnemyState::Attack ? ORANGE : state == EnemyState::Defeat ? DARKGRAY : PURPLE;
-        DrawRectangle(static_cast<int>(screenPos.x - 25), static_cast<int>(screenPos.y - 90), 50, 90, c);
-        const int eyeX = static_cast<int>(facing == Facing::Right ? screenPos.x + 15 : screenPos.x - 25);
-        DrawRectangle(eyeX, static_cast<int>(screenPos.y - 80), 10, 10, RED);
+        DrawRectangle(static_cast<int>(screenPos.x - 25 * depthScale), static_cast<int>(screenPos.y - 90 * depthScale),
+                      static_cast<int>(50 * depthScale), static_cast<int>(90 * depthScale), c);
     }
 
     if (state != EnemyState::Defeat && hp < maxHp) {
         const int width = 64;
         const int x = static_cast<int>(screenPos.x - width / 2.0f);
-        const int y = static_cast<int>(screenPos.y - 118.0f);
+        const int y = static_cast<int>(screenPos.y - 110.0f * depthScale);
         DrawRectangle(x, y, width, 7, {20, 20, 20, 220});
         DrawRectangle(x, y, static_cast<int>(width * (static_cast<float>(hp) / maxHp)), 7, GREEN);
     }
