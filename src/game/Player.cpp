@@ -4,17 +4,20 @@
 #include <cmath>
 
 namespace district_fury {
-
 namespace {
+
 float DepthScale(float laneY) {
-    const float t = std::clamp((laneY - kLaneMinY) / (kLaneMaxY - kLaneMinY), 0.0f, 1.0f);
+    const float t = std::clamp(
+        (laneY - kLaneMinY) / (kLaneMaxY - kLaneMinY),
+        0.0f,
+        1.0f
+    );
     return 0.86f + 0.26f * t;
 }
+
 }
 
-Player::Player() {
-    Reset();
-}
+Player::Player() { Reset(); }
 
 void Player::Reset() {
     position = {180.0f, 565.0f, 0.0f};
@@ -41,32 +44,37 @@ void Player::Reset() {
     comboCount = 0;
     comboStep = 0;
     hasHit = false;
-
     animator = Animator{};
 }
 
 void Player::SetState(PlayerState newState) {
     if (state == newState && newState != PlayerState::Attack) return;
+
     state = newState;
     hasHit = false;
 
     const bool clean = animator.normalizedAtlas;
     switch (state) {
         case PlayerState::Idle:
-            animator.Play(clean ? AnimationClip{0, 3, 0.12f, true} : AnimationClip{0, 4, 0.12f, true});
+            animator.Play(clean ? AnimationClip{0, 3, 0.12f, true}
+                                : AnimationClip{0, 4, 0.12f, true});
             break;
         case PlayerState::Walk:
-            animator.Play(clean ? AnimationClip{4, 7, 0.095f, true} : AnimationClip{0, 4, 0.095f, true});
+            animator.Play(clean ? AnimationClip{4, 7, 0.105f, true}
+                                : AnimationClip{0, 4, 0.10f, true});
             break;
         case PlayerState::Dash:
-            animator.Play(clean ? AnimationClip{14, 14, 0.08f, false} : AnimationClip{0, 4, 0.055f, false});
+            animator.Play(clean ? AnimationClip{14, 14, 0.08f, false}
+                                : AnimationClip{0, 4, 0.08f, false});
             break;
         case PlayerState::Hit:
-            animator.Play(clean ? AnimationClip{13, 13, 0.10f, false} : AnimationClip{0, 4, 0.08f, false});
+            animator.Play(clean ? AnimationClip{13, 13, 0.10f, false}
+                                : AnimationClip{0, 4, 0.08f, false});
             stateTimer = 0.28f;
             break;
         case PlayerState::Defeat:
-            animator.Play(clean ? AnimationClip{15, 15, 0.10f, false} : AnimationClip{0, 4, 0.10f, false});
+            animator.Play(clean ? AnimationClip{15, 15, 0.10f, false}
+                                : AnimationClip{0, 4, 0.10f, false});
             break;
         case PlayerState::Attack:
             break;
@@ -132,9 +140,8 @@ void Player::Update(float dt) {
 
     if (state == PlayerState::Dash) {
         dashTimer -= dt;
-        const float dashSpeed = 700.0f;
         const float direction = facing == Facing::Right ? 1.0f : -1.0f;
-        position.x += direction * dashSpeed * dt;
+        position.x += direction * 700.0f * dt;
         position.x = std::clamp(position.x, kStageStartX, kStageEndX - 90.0f);
         if (dashTimer <= 0.0f) SetState(PlayerState::Idle);
         return;
@@ -173,7 +180,10 @@ void Player::Update(float dt) {
         return;
     }
 
-    auto beginAttack = [&](AttackType type, float duration, int cleanStart, int cleanEnd, int legacyStart, int legacyEnd, float frameDuration) {
+    auto beginAttack = [&](AttackType type, float duration,
+                           int cleanStart, int cleanEnd,
+                           int legacyStart, int legacyEnd,
+                           float frameDuration) {
         state = PlayerState::Attack;
         attackType = type;
         attackElapsed = 0.0f;
@@ -187,19 +197,19 @@ void Player::Update(float dt) {
 
     if (IsKeyPressed(KEY_J)) {
         comboStep = (comboWindow > 0.0f) ? (comboStep + 1) % 3 : 0;
-        beginAttack(AttackType::Punch, 0.26f, 8, 9, 5, 9, 0.105f);
+        beginAttack(AttackType::Punch, 0.30f, 8, 9, 5, 9, 0.15f);
         return;
     }
 
     if (IsKeyPressed(KEY_K)) {
         comboStep = 3;
-        beginAttack(AttackType::Kick, 0.30f, 10, 11, 10, 14, 0.12f);
+        beginAttack(AttackType::Kick, 0.36f, 10, 11, 10, 14, 0.16f);
         return;
     }
 
     if (IsKeyPressed(KEY_L) && sp >= 20) {
         sp -= 20;
-        beginAttack(AttackType::Energy, 0.40f, 12, 12, 5, 9, 0.20f);
+        beginAttack(AttackType::Energy, 0.48f, 12, 12, 5, 9, 0.24f);
         return;
     }
 
@@ -218,9 +228,9 @@ void Player::Update(float dt) {
 
 bool Player::AttackIsActive() const {
     if (state != PlayerState::Attack) return false;
-    if (attackType == AttackType::Punch) return attackElapsed >= 0.08f && attackElapsed <= 0.20f;
-    if (attackType == AttackType::Kick) return attackElapsed >= 0.08f && attackElapsed <= 0.23f;
-    if (attackType == AttackType::Energy) return attackElapsed >= 0.08f && attackElapsed <= 0.32f;
+    if (attackType == AttackType::Punch) return attackElapsed >= 0.09f && attackElapsed <= 0.22f;
+    if (attackType == AttackType::Kick) return attackElapsed >= 0.11f && attackElapsed <= 0.28f;
+    if (attackType == AttackType::Energy) return attackElapsed >= 0.12f && attackElapsed <= 0.40f;
     return false;
 }
 
@@ -250,11 +260,12 @@ float Player::GetAttackKnockback() const {
 }
 
 CombatBox Player::GetHurtbox() const {
-    return {position.x - 25.0f, position.y - 112.0f, 50.0f, 105.0f};
+    return {position.x - 24.0f, position.y - 112.0f, 48.0f, 105.0f};
 }
 
 CombatBox Player::GetAttackHitbox() const {
     if (!AttackIsActive()) return {};
+
     const float direction = facing == Facing::Right ? 1.0f : -1.0f;
     float width = 82.0f;
     float height = 48.0f;
@@ -288,9 +299,12 @@ void Player::TakeDamage(int damage) {
 void Player::Draw() const {
     const Vector2 screenPos = position.ToScreen();
     const float depthScale = DepthScale(position.y);
-    const float visualScale = animator.normalizedAtlas ? 2.25f * depthScale : 0.43f * depthScale;
-    DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-                32.0f * depthScale, 9.0f * depthScale, {0, 0, 0, 150});
+    const float visualScale = animator.normalizedAtlas ? 1.04f * depthScale : 0.72f * depthScale;
+
+    DrawEllipse(
+        static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
+        28.0f * depthScale, 8.0f * depthScale, {0, 0, 0, 145}
+    );
 
     if (animator.texture.id != 0) {
         Color tint = WHITE;
@@ -299,13 +313,26 @@ void Player::Draw() const {
         animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
 
         if (isRageMode) {
-            const float pulse = (34.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f) * depthScale;
-            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 58 * depthScale), pulse, {0, 170, 255, 110});
+            const float pulse =
+                (34.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f) * depthScale;
+            DrawCircleLines(
+                static_cast<int>(screenPos.x),
+                static_cast<int>(screenPos.y - 64.0f * depthScale),
+                pulse,
+                {0, 170, 255, 110}
+            );
         }
     } else {
-        Color c = state == PlayerState::Hit ? RED : state == PlayerState::Attack ? YELLOW : BLUE;
-        DrawRectangle(static_cast<int>(screenPos.x - 18 * depthScale), static_cast<int>(screenPos.y - 68 * depthScale),
-                      static_cast<int>(36 * depthScale), static_cast<int>(68 * depthScale), c);
+        Color c = state == PlayerState::Hit ? RED
+                  : state == PlayerState::Attack ? YELLOW
+                  : BLUE;
+        DrawRectangle(
+            static_cast<int>(screenPos.x - 18 * depthScale),
+            static_cast<int>(screenPos.y - 68 * depthScale),
+            static_cast<int>(36 * depthScale),
+            static_cast<int>(68 * depthScale),
+            c
+        );
     }
 }
 
