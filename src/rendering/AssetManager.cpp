@@ -9,17 +9,11 @@
 namespace district_fury {
 namespace {
 
-std::string ResolveAssetPath(const std::string& relativePath) {
-    const std::vector<std::string> candidates = {
-        relativePath,
-        "../" + relativePath,
-        "../../" + relativePath,
-        "../../../" + relativePath
-    };
+std::string ResolveAssetPath(const std::vector<std::string>& candidates) {
     for (const auto& path : candidates) {
         if (FileExists(path.c_str())) return path;
     }
-    return relativePath;
+    return candidates.empty() ? std::string{} : candidates.front();
 }
 
 bool NearColor(const Color& a, const Color& b, int threshold) {
@@ -56,8 +50,9 @@ Texture2D LoadSpriteTexture(const std::string& path, int columns, int rows) {
         return Texture2D{0};
     }
 
-    // Process every expected frame independently. This prevents opaque fragments from
-    // neighboring AI-generated poses from surviving inside another frame's cell.
+    // Clean each frame independently. This is retained for legacy JPG sheets and is
+    // harmless on the DF-005 transparent atlases. It prevents neighboring poses or
+    // background fragments from surviving inside another frame.
     for (int row = 0; row < rows; ++row) {
         const int y0 = (row * height) / rows;
         const int y1 = ((row + 1) * height) / rows;
@@ -73,13 +68,12 @@ Texture2D LoadSpriteTexture(const std::string& path, int columns, int rows) {
             auto localIndex = [cellWidth](int x, int y) { return y * cellWidth + x; };
             std::vector<int> stack;
 
-            // Flood-fill only the local border-connected background.
             auto visitBackground = [&](int lx, int ly) {
                 if (lx < 0 || ly < 0 || lx >= cellWidth || ly >= cellHeight) return;
                 const int li = localIndex(lx, ly);
                 if (visited[static_cast<std::size_t>(li)]) return;
                 const Color& pixel = pixels[(y0 + ly) * width + (x0 + lx)];
-                if (!NearColor(pixel, key, 55)) return;
+                if (pixel.a != 0 && !NearColor(pixel, key, 55)) return;
                 visited[static_cast<std::size_t>(li)] = 1;
                 stack.push_back(li);
             };
@@ -104,8 +98,6 @@ Texture2D LoadSpriteTexture(const std::string& path, int columns, int rows) {
                 visitBackground(lx, ly - 1);
             }
 
-            // Label foreground components using 8-connectivity. The largest component is
-            // the main character body; only nearby secondary pieces survive.
             std::fill(visited.begin(), visited.end(), 0);
             std::vector<Component> components;
             for (int ly = 0; ly < cellHeight; ++ly) {
@@ -163,26 +155,21 @@ Texture2D LoadSpriteTexture(const std::string& path, int columns, int rows) {
                 return a.area > b.area;
             });
             const Component& main = components.front();
-            const int keepGap = std::max(16, static_cast<int>(std::min(cellWidth, cellHeight) * 0.045f));
+            const int keepGap = std::max(8, static_cast<int>(std::min(cellWidth, cellHeight) * 0.045f));
 
-            // Clear the entire cell, then restore only the intended components. This is
-            // deterministic and prevents any leftover source pixels from being sampled.
             for (int ly = 0; ly < cellHeight; ++ly) {
                 for (int lx = 0; lx < cellWidth; ++lx) {
                     pixels[(y0 + ly) * width + (x0 + lx)].a = 0;
                 }
             }
 
-            auto keepComponent = [&](const Component& component) {
-                if (&component == &main) return true;
-                if (component.area < std::max(24, static_cast<int>(main.area * 0.08f))) return false;
-                const int horizontalGap = RectGap(main.minX, main.maxX, component.minX, component.maxX);
-                const int verticalGap = RectGap(main.minY, main.maxY, component.minY, component.maxY);
-                return horizontalGap <= keepGap && verticalGap <= keepGap;
-            };
-
             for (const auto& component : components) {
-                if (!keepComponent(component)) continue;
+                if (&component != &main) {
+                    if (component.area < std::max(24, static_cast<int>(main.area * 0.06f))) continue;
+                    const int horizontalGap = RectGap(main.minX, main.maxX, component.minX, component.maxX);
+                    const int verticalGap = RectGap(main.minY, main.maxY, component.minY, component.maxY);
+                    if (horizontalGap > keepGap || verticalGap > keepGap) continue;
+                }
                 for (const int li : component.pixels) {
                     const int lx = li % cellWidth;
                     const int ly = li / cellWidth;
@@ -202,19 +189,56 @@ Texture2D LoadSpriteTexture(const std::string& path, int columns, int rows) {
 void AssetManager::LoadAll() {
     if (!textures.empty()) return;
 
-    const std::string background = ResolveAssetPath("assets/backgrounds/bg_industrial.jpg");
-    const std::string rayden = ResolveAssetPath("assets/characters/rayden_sheet.jpg");
-    const std::string grinder = ResolveAssetPath("assets/enemies/grinder_sheet.jpg");
-    const std::string vfx = ResolveAssetPath("assets/vfx/vfx_sheet.jpg");
+    const std::string background = ResolveAssetPath({
+        "assets/backgrounds/old_steel_yard_clean.png",
+        "assets/backgrounds/bg_industrial.jpg"
+    });
+    const std::string raydenClean = ResolveAssetPath({
+        "assets/characters/rayden_clean.png",
+        "../assets/characters/rayden_clean.png",
+        "../../assets/characters/rayden_clean.png"
+    });
+    const std::string raydenLegacy = ResolveAssetPath({
+        "assets/characters/rayden_sheet.jpg",
+        "../assets/characters/rayden_sheet.jpg",
+        "../../assets/characters/rayden_sheet.jpg"
+    });
+    const std::string grinderClean = ResolveAssetPath({
+        "assets/enemies/grinder_clean.png",
+        "../assets/enemies/grinder_clean.png",
+        "../../assets/enemies/grinder_clean.png"
+    });
+    const std::string grinderLegacy = ResolveAssetPath({
+        "assets/enemies/grinder_sheet.jpg",
+        "../assets/enemies/grinder_sheet.jpg",
+        "../../assets/enemies/grinder_sheet.jpg"
+    });
+    const std::string vfx = ResolveAssetPath({
+        "assets/vfx/vfx_sheet.jpg",
+        "../assets/vfx/vfx_sheet.jpg",
+        "../../assets/vfx/vfx_sheet.jpg"
+    });
 
     textures["bg_industrial"] = LoadTexture(background.c_str());
-    textures["rayden_sheet"] = LoadSpriteTexture(rayden, 5, 3);
-    textures["grinder_sheet"] = LoadSpriteTexture(grinder, 4, 3);
-    textures["vfx_sheet"] = LoadTexture(vfx.c_str());
 
+    if (FileExists(raydenClean.c_str())) {
+        textures["rayden_clean"] = LoadSpriteTexture(raydenClean, 4, 4);
+        if (textures["rayden_clean"].id != 0) SetTextureFilter(textures["rayden_clean"], TEXTURE_FILTER_POINT);
+    } else {
+        textures["rayden_sheet"] = LoadSpriteTexture(raydenLegacy, 5, 3);
+        if (textures["rayden_sheet"].id != 0) SetTextureFilter(textures["rayden_sheet"], TEXTURE_FILTER_POINT);
+    }
+
+    if (FileExists(grinderClean.c_str())) {
+        textures["grinder_clean"] = LoadSpriteTexture(grinderClean, 4, 3);
+        if (textures["grinder_clean"].id != 0) SetTextureFilter(textures["grinder_clean"], TEXTURE_FILTER_POINT);
+    } else {
+        textures["grinder_sheet"] = LoadSpriteTexture(grinderLegacy, 4, 3);
+        if (textures["grinder_sheet"].id != 0) SetTextureFilter(textures["grinder_sheet"], TEXTURE_FILTER_POINT);
+    }
+
+    textures["vfx_sheet"] = LoadTexture(vfx.c_str());
     if (textures["bg_industrial"].id != 0) SetTextureFilter(textures["bg_industrial"], TEXTURE_FILTER_BILINEAR);
-    if (textures["rayden_sheet"].id != 0) SetTextureFilter(textures["rayden_sheet"], TEXTURE_FILTER_POINT);
-    if (textures["grinder_sheet"].id != 0) SetTextureFilter(textures["grinder_sheet"], TEXTURE_FILTER_POINT);
     if (textures["vfx_sheet"].id != 0) SetTextureFilter(textures["vfx_sheet"], TEXTURE_FILTER_POINT);
 }
 
