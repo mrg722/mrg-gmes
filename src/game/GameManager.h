@@ -1,7 +1,7 @@
 #pragma once
 #include "game/Player.h"
 #include "game/Scene.h"
-#include "game/Enemy.h"
+#include "game/StreetEnemy.h"
 #include <vector>
 
 namespace district_fury {
@@ -34,7 +34,7 @@ struct Particle {
 class GameManager {
 public:
     Player player;
-    Enemy enemy;
+    std::vector<StreetEnemy> enemies;
     Scene scene;
     GameFlowState flowState;
 
@@ -44,9 +44,10 @@ public:
     float hitstopTimer;
     float screenshakeTimer;
     float introTimer;
-    float comboTimer;
     float elapsedTime;
+    float cameraX;
     int maxCombo;
+    int defeatedEnemies;
 
     GameManager();
     void Init();
@@ -57,6 +58,8 @@ public:
     void SpawnHitParticles(Vector3D pos, AttackType type, bool heavy);
     void DoHitstop(float duration);
     void DoScreenshake(float duration);
+    bool AllEnemiesDefeated() const;
+    int RemainingEnemies() const;
 };
 
 }

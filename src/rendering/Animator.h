@@ -31,6 +31,9 @@ public:
         cols = std::max(1, columns);
         rows = std::max(1, rws);
         currentFrame = 0;
+        timer = 0.0f;
+        isPlaying = false;
+        isFinished = true;
     }
 
     void Play(AnimationClip clip) {
@@ -46,7 +49,7 @@ public:
 
     void Update(float dt) {
         if (!isPlaying || isFinished) return;
-        timer += dt;
+        timer += std::max(0.0f, dt);
         while (timer >= currentClip.frameDuration) {
             timer -= currentClip.frameDuration;
             ++currentFrame;
@@ -64,15 +67,28 @@ public:
     }
 
     void Draw(Vector2 position, float scale, bool flipX, Color tint = WHITE) const {
-        if (texture.id == 0) return;
-        const float frameWidth = static_cast<float>(texture.width) / static_cast<float>(cols);
-        const float frameHeight = static_cast<float>(texture.height) / static_cast<float>(rows);
-        const int col = std::clamp(currentFrame % cols, 0, cols - 1);
-        const int row = std::clamp(currentFrame / cols, 0, rows - 1);
+        if (texture.id == 0 || texture.width <= 0 || texture.height <= 0) return;
+
+        const int safeFrame = std::clamp(currentFrame, 0, cols * rows - 1);
+        const int col = safeFrame % cols;
+        const int row = safeFrame / cols;
+
+        // Integer cell boundaries avoid fractional atlas coordinates. A one-pixel
+        // inset keeps bilinear filtering from sampling a neighbouring frame; the
+        // sprite textures themselves are loaded with point filtering as an extra guard.
+        const int x0 = (col * texture.width) / cols;
+        const int x1 = ((col + 1) * texture.width) / cols;
+        const int y0 = (row * texture.height) / rows;
+        const int y1 = ((row + 1) * texture.height) / rows;
+        const int inset = (x1 - x0 > 4 && y1 - y0 > 4) ? 1 : 0;
+
+        const float frameWidth = static_cast<float>((x1 - x0) - inset * 2);
+        const float frameHeight = static_cast<float>((y1 - y0) - inset * 2);
+        if (frameWidth <= 1.0f || frameHeight <= 1.0f) return;
 
         Rectangle source = {
-            col * frameWidth,
-            row * frameHeight,
+            static_cast<float>(x0 + inset),
+            static_cast<float>(y0 + inset),
             flipX ? -frameWidth : frameWidth,
             frameHeight
         };

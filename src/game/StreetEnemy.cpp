@@ -1,0 +1,231 @@
+#include "game/StreetEnemy.h"
+#include "rendering/AssetManager.h"
+#include <algorithm>
+#include <cmath>
+
+namespace district_fury {
+namespace {
+
+struct Stats {
+    int hp;
+    float speed;
+    float damage;
+    float range;
+    float depth;
+    float attackDuration;
+    float scale;
+    Color tint;
+    float bodyWidth;
+    float bodyHeight;
+};
+
+Stats GetStats(StreetEnemyType type) {
+    switch (type) {
+        case StreetEnemyType::Brute:
+            return {130, 95.0f, 20.0f, 132.0f, 46.0f, 0.72f, 0.76f, {255, 175, 175, 255}, 64.0f, 122.0f};
+        case StreetEnemyType::Charger:
+            return {72, 220.0f, 14.0f, 120.0f, 42.0f, 0.54f, 0.68f, {255, 215, 160, 255}, 52.0f, 108.0f};
+        case StreetEnemyType::Enforcer:
+            return {190, 122.0f, 24.0f, 146.0f, 50.0f, 0.76f, 0.80f, {205, 190, 255, 255}, 66.0f, 130.0f};
+        case StreetEnemyType::Punk:
+        default:
+            return {58, 172.0f, 12.0f, 110.0f, 38.0f, 0.62f, 0.68f, WHITE, 52.0f, 108.0f};
+    }
+}
+
+void EnsureAnimator(Animator& animator) {
+    if (animator.texture.id != 0) return;
+    const Texture2D texture = AssetManager::Get().GetTexture("grinder_sheet");
+    if (texture.id != 0) {
+        animator.Init(texture, 4, 3);
+        animator.Play({0, 3, 0.12f, true});
+    }
+}
+
+}
+
+StreetEnemy::StreetEnemy() {
+    Init({900.0f, 560.0f, 0.0f}, StreetEnemyType::Punk);
+}
+
+void StreetEnemy::Init(Vector3D startPos, StreetEnemyType enemyType) {
+    const Stats stats = GetStats(enemyType);
+    position = startPos;
+    velocity = {0.0f, 0.0f, 0.0f};
+    facing = Facing::Left;
+    state = StreetEnemyState::Idle;
+    type = enemyType;
+    active = false;
+    hp = stats.hp;
+    maxHp = stats.hp;
+    moveSpeed = stats.speed;
+    attackDamage = stats.damage;
+    attackRange = stats.range;
+    attackDepth = stats.depth;
+    attackDuration = stats.attackDuration;
+    stateTimer = 0.0f;
+    attackElapsed = 0.0f;
+    hasHit = false;
+    animator = Animator{};
+}
+
+void StreetEnemy::Activate() {
+    active = true;
+    if (state == StreetEnemyState::Defeat) return;
+    state = StreetEnemyState::Idle;
+    hasHit = false;
+}
+
+void StreetEnemy::Update(float dt, const Player& player) {
+    if (!active) return;
+    EnsureAnimator(animator);
+    animator.Update(dt);
+
+    if (state == StreetEnemyState::Defeat) {
+        stateTimer -= dt;
+        return;
+    }
+
+    if (state == StreetEnemyState::Hit) {
+        stateTimer -= dt;
+        position.x += velocity.x * dt;
+        position.y += velocity.y * dt;
+        velocity.x *= 0.86f;
+        velocity.y *= 0.86f;
+        if (stateTimer <= 0.0f) {
+            state = StreetEnemyState::Idle;
+            animator.Play({0, 3, 0.12f, true});
+        }
+        position.x = std::clamp(position.x, kStageStartX, kStageEndX - 90.0f);
+        position.y = std::clamp(position.y, kLaneMinY, kLaneMaxY);
+        return;
+    }
+
+    if (state == StreetEnemyState::Attack) {
+        stateTimer -= dt;
+        attackElapsed += dt;
+        if (stateTimer <= 0.0f || animator.isFinished) {
+            state = StreetEnemyState::Idle;
+            animator.Play({0, 3, 0.12f, true});
+        }
+        return;
+    }
+
+    if (player.state == PlayerState::Defeat) return;
+
+    const float dx = player.position.x - position.x;
+    const float dy = player.position.y - position.y;
+    const float horizontal = std::abs(dx);
+    const float depth = std::abs(dy);
+    const float distance = std::sqrt(dx * dx + dy * dy);
+    facing = dx >= 0.0f ? Facing::Right : Facing::Left;
+
+    if (horizontal < attackRange && depth < attackDepth) {
+        state = StreetEnemyState::Attack;
+        stateTimer = attackDuration;
+        attackElapsed = 0.0f;
+        hasHit = false;
+        const float frameSpeed = type == StreetEnemyType::Charger ? 0.075f : 0.10f;
+        animator.Play({4, 6, frameSpeed, false});
+        return;
+    }
+
+    if (distance < 760.0f) {
+        state = StreetEnemyState::Chase;
+        const float desiredSpeed = moveSpeed;
+        if (distance > 0.001f) {
+            position.x += (dx / distance) * desiredSpeed * dt;
+            position.y += (dy / distance) * desiredSpeed * 0.72f * dt;
+        }
+        if (animator.isFinished || !animator.isPlaying || animator.currentFrame > 3) {
+            animator.Play({0, 3, 0.12f, true});
+        }
+    } else {
+        state = StreetEnemyState::Idle;
+        if (animator.isFinished || animator.currentFrame > 3) animator.Play({0, 3, 0.12f, true});
+    }
+
+    position.x = std::clamp(position.x, kStageStartX, kStageEndX - 90.0f);
+    position.y = std::clamp(position.y, kLaneMinY, kLaneMaxY);
+}
+
+bool StreetEnemy::AttackIsActive() const {
+    return state == StreetEnemyState::Attack &&
+           attackElapsed >= attackDuration * 0.34f &&
+           attackElapsed <= attackDuration * 0.74f;
+}
+
+bool StreetEnemy::IsDefeated() const {
+    return state == StreetEnemyState::Defeat;
+}
+
+CombatBox StreetEnemy::GetHurtbox() const {
+    if (!active || IsDefeated()) return {};
+    const Stats stats = GetStats(type);
+    return {position.x - stats.bodyWidth * 0.5f, position.y - stats.bodyHeight,
+            stats.bodyWidth, stats.bodyHeight};
+}
+
+CombatBox StreetEnemy::GetAttackHitbox() const {
+    if (!AttackIsActive()) return {};
+    const float direction = facing == Facing::Right ? 1.0f : -1.0f;
+    const float width = attackRange * 0.78f;
+    const float height = 52.0f;
+    const float centerX = position.x + direction * attackRange * 0.55f;
+    const float centerY = position.y - 72.0f;
+    return {centerX - width * 0.5f, centerY - height * 0.5f, width, height};
+}
+
+const char* StreetEnemy::GetTypeName() const {
+    switch (type) {
+        case StreetEnemyType::Brute: return "BRUTE";
+        case StreetEnemyType::Charger: return "CHARGER";
+        case StreetEnemyType::Enforcer: return "ENFORCER";
+        case StreetEnemyType::Punk:
+        default: return "PUNK";
+    }
+}
+
+void StreetEnemy::TakeDamage(int damage, Vector3D knockback) {
+    if (!active || state == StreetEnemyState::Defeat) return;
+    hp = std::max(0, hp - damage);
+    velocity = knockback;
+
+    if (hp == 0) {
+        state = StreetEnemyState::Defeat;
+        stateTimer = 0.85f;
+        animator.Play({8, 10, 0.11f, false});
+    } else {
+        state = StreetEnemyState::Hit;
+        stateTimer = 0.38f;
+        animator.Play({8, 10, 0.09f, false});
+    }
+}
+
+void StreetEnemy::Draw() const {
+    if (!active) return;
+    const Stats stats = GetStats(type);
+    const Vector2 screenPos = position.ToScreen();
+    DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
+                stats.scale >= 0.78f ? 39.0f : 32.0f, 10.0f, {0, 0, 0, 145});
+
+    if (animator.texture.id != 0) {
+        Color tint = stats.tint;
+        if (state == StreetEnemyState::Hit) tint = {255, 215, 215, 255};
+        if (state == StreetEnemyState::Defeat) tint = {180, 180, 180, 255};
+        animator.Draw(screenPos, stats.scale, facing == Facing::Left, tint);
+    } else {
+        DrawRectangle(static_cast<int>(screenPos.x - 22), static_cast<int>(screenPos.y - 78), 44, 78, PURPLE);
+    }
+
+    if (state != StreetEnemyState::Defeat && hp < maxHp) {
+        const int width = stats.scale >= 0.78f ? 82 : 64;
+        const int x = static_cast<int>(screenPos.x - width * 0.5f);
+        const int y = static_cast<int>(screenPos.y - stats.bodyHeight - 10.0f);
+        DrawRectangle(x, y, width, 6, {20, 20, 20, 220});
+        DrawRectangle(x, y, static_cast<int>(width * (static_cast<float>(hp) / maxHp)), 6,
+                      stats.scale >= 0.78f ? RED : GREEN);
+    }
+}
+
+} // namespace district_fury

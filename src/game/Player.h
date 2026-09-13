@@ -62,6 +62,8 @@ public:
     float GetAttackRange() const;
     float GetAttackDepthRange() const;
     float GetAttackKnockback() const;
+    CombatBox GetHurtbox() const;
+    CombatBox GetAttackHitbox() const;
 };
 
 }
