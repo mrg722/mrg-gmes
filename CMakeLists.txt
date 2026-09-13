@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(DistrictFury VERSION 0.1.0 LANGUAGES CXX)
+project(DistrictFury VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,7 @@ FetchContent_MakeAvailable(raylib)
 add_library(district_fury_core
     src/core/ApplicationState.cpp
     src/game/Player.cpp
-    src/game/Enemy.cpp
+    src/game/StreetEnemy.cpp
     src/game/Scene.cpp
     src/game/GameManager.cpp
     src/rendering/AssetManager.cpp

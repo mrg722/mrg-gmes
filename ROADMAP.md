@@ -1,29 +1,52 @@
-# District Fury — Hoja de ruta
+# District Fury — Hoja de ruta de producción
 
-## V0.1 — Vertical Slice
-Rayden, movimiento, ataques, enemigo básico, daño, hitstun, combo, HUD, victoria/game over y build funcional.
+## DF-004 — Street Foundation (en progreso)
+- Estabilización de sprite sheets generados.
+- Escala y pivote de personajes adecuados al escenario.
+- Hitboxes/hurtboxes explícitos.
+- Cámara 2D con seguimiento y límites.
+- Escenario urbano-industrial desplazable.
+- Recorrido horizontal y encuentros progresivos.
+- Variantes de enemigos con estadísticas y comportamiento diferente.
 
-## V0.2 — Expansión del combate
-Más enemigos, habilidades, mejoras de IA y VFX.
+## DF-005 — Combat 2.0
+- Combos encadenables reales.
+- Hitbox/hurtbox por ataque y frame.
+- Knockdown, launch, wall hit e invulnerabilidad.
+- Proyectiles y eventos de impacto.
+- VFX y audio de impacto.
 
-## V0.3 — Stage 1
-Slum District, Brakk "The Chain", Stage Clear y progresión básica.
+## DF-006 — Stage 1: Slum District
+- Calle completa con tramos, arenas y transiciones.
+- Props, parallax y composición visual consistente.
+- Brakk "The Chain" como boss original.
+- Stage Clear, score y rango D→SSS.
 
-## V0.4 — Stage 2
-Old Steel Yard y Grinder.
+## DF-007 — Stage 2: Old Steel Yard
+- Completar identidad industrial/química.
+- Grinder y variantes de enemigos.
+- Boss y arenas específicas.
 
-## V0.5 — Stage 3
-Astra Tower y Titan-X.
+## DF-008 — Stage 3: Astra Tower
+- Entorno tecnológico/corporativo.
+- Enemigos avanzados.
+- Titan-X como jefe final.
 
-## V0.6 — Sistemas
-Menús completos, guardado/carga, dificultad y balance.
+## DF-009 — Sistemas de juego
+- Menús completos.
+- Guardado/carga.
+- Dificultad.
+- XP, coins, gems, level y mejoras.
+- Desbloqueo de stages.
 
-## V0.7 — Pulido
-Audio, VFX, optimización y pulido general.
-
-## V1.0 — Versión PC
-Juego PC completo, QA, documentación y build reproducible.
+## DF-010 — Pulido y release PC
+- Audio completo.
+- VFX final.
+- Optimización.
+- QA de controles y colisiones.
+- Builds reproducibles.
+- Windows/Linux release.
 
 ## Posterior
-- V1.1 — WebAssembly
-- V1.2 — Android
+- WebAssembly.
+- Android con joystick y botones táctiles.

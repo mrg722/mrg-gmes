@@ -1,43 +1,44 @@
 # District Fury
 
-Videojuego 2D beat'em up / brawler original.
+Videojuego 2D beat'em up / brawler original desarrollado en C++17 y raylib.
 
-## Tecnologías
-- C++17+
-- raylib
-- CMake
+## Estado actual
+**DF-004 — Street Foundation**
 
-## Plataformas
-1. PC
-2. Web/WASM
-3. Android
+El proyecto ya no se limita a una arena fija: la base actual incluye un mundo horizontal de 6000 unidades, cámara con seguimiento suave, escena urbana/industrial con capas de profundidad y parallax, recorrido por la calle, encuentros progresivos y combate con hitboxes/hurtboxes explícitas.
 
-## Objetivo actual
-**V0.1 — Vertical Slice**
+La fundación visual de sprites también se estabilizó: las hojas generadas se procesan por celda al cargar, se eliminan componentes ajenos y se usa filtrado POINT para evitar bleeding entre frames.
 
-La primera meta es tener una pequeña versión completamente jugable con:
-- Rayden Cruz
-- movimiento
-- ataques básicos
-- enemigo
-- daño e hitstun
-- combo
-- HUD
-- victoria / game over
-- compilación reproducible
+## Jugabilidad actual
+- Rayden Cruz con idle/walk/punch/kick/energy/dash/rage.
+- Movimiento WASD en horizontal y profundidad.
+- Cámara 2D desplazable con límites del escenario.
+- Calle nocturna industrial con edificios, aceras, farolas, autos, basura, cables y elementos de primer plano.
+- Encuentros progresivos a medida que Rayden recorre el distrito.
+- Arquetipos de enemigo: Punk, Brute, Charger y Enforcer.
+- Hitboxes/hurtboxes independientes de la posición central.
+- Hitstop, screenshake, partículas, números de daño y combo.
+- Victoria al limpiar el distrito y alcanzar la salida; game over y reinicio.
+- Build reproducible con CMake + raylib 5.5 y pruebas automatizadas.
 
-## Estructura
+## Controles de PC
+- WASD: movimiento
+- J: punch
+- K: kick
+- L: energy
+- Shift: dash
+- Space: Rage
+- ESC: pausa
+- R: reinicio tras victoria/derrota
 
+## Arquitectura
 ```text
-src/                    Código C++
-assets/                 Recursos del juego
-data/                   Datos configurables
-tests/                  Pruebas
-docs/                   Documentación adicional
-tasks/                  Tareas de agentes
-reports/                Informes de builds, QA y agentes
-.github/workflows/      Automatización CI
+src/core/       estado global de la aplicación
+src/game/       jugador, enemigos, escena y game flow
+src/rendering/  animator y carga/procesamiento de assets
+assets/         recursos visuales
+ data/          datos configurables
+ tests/         pruebas
 ```
 
-## Flujo de desarrollo
-GitHub es la fuente central de verdad. Los cambios de agentes deben realizarse mediante ramas y Pull Requests.
+GitHub es la fuente central de verdad. Los cambios grandes se desarrollan en ramas y se integran mediante Pull Requests después de CI.

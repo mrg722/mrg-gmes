@@ -5,19 +5,12 @@
 
 namespace district_fury {
 
-namespace {
-constexpr float kMinX = 50.0f;
-constexpr float kMaxX = 1230.0f;
-constexpr float kMinLane = 450.0f;
-constexpr float kMaxLane = 700.0f;
-}
-
 Player::Player() {
     Reset();
 }
 
 void Player::Reset() {
-    position = {200.0f, 530.0f, 0.0f};
+    position = {180.0f, 565.0f, 0.0f};
     velocity = {0.0f, 0.0f, 0.0f};
     facing = Facing::Right;
     state = PlayerState::Idle;
@@ -58,7 +51,7 @@ void Player::SetState(PlayerState newState) {
             animator.Play({0, 4, 0.09f, true});
             break;
         case PlayerState::Dash:
-            animator.Play({0, 4, 0.05f, true});
+            animator.Play({0, 4, 0.055f, true});
             break;
         case PlayerState::Hit:
             animator.Play({0, 4, 0.08f, false});
@@ -73,12 +66,11 @@ void Player::SetState(PlayerState newState) {
 }
 
 static void EnsurePlayerAnimator(Animator& animator) {
-    if (animator.texture.id == 0) {
-        Texture2D texture = AssetManager::Get().GetTexture("rayden_sheet");
-        if (texture.id != 0) {
-            animator.Init(texture, 5, 3);
-            animator.Play({0, 4, 0.12f, true});
-        }
+    if (animator.texture.id != 0) return;
+    Texture2D texture = AssetManager::Get().GetTexture("rayden_sheet");
+    if (texture.id != 0) {
+        animator.Init(texture, 5, 3);
+        animator.Play({0, 4, 0.12f, true});
     }
 }
 
@@ -117,8 +109,8 @@ void Player::Update(float dt) {
         velocity.x *= 0.88f;
         velocity.y *= 0.88f;
         if (stateTimer <= 0.0f) SetState(PlayerState::Idle);
-        position.x = std::clamp(position.x, kMinX, kMaxX);
-        position.y = std::clamp(position.y, kMinLane, kMaxLane);
+        position.x = std::clamp(position.x, kStageStartX, kStageEndX - 90.0f);
+        position.y = std::clamp(position.y, kLaneMinY, kLaneMaxY);
         return;
     }
 
@@ -127,7 +119,7 @@ void Player::Update(float dt) {
         const float dashSpeed = 700.0f;
         const float direction = facing == Facing::Right ? 1.0f : -1.0f;
         position.x += direction * dashSpeed * dt;
-        position.x = std::clamp(position.x, kMinX, kMaxX);
+        position.x = std::clamp(position.x, kStageStartX, kStageEndX - 90.0f);
         if (dashTimer <= 0.0f) SetState(PlayerState::Idle);
         return;
     }
@@ -135,9 +127,7 @@ void Player::Update(float dt) {
     if (state == PlayerState::Attack) {
         attackElapsed += dt;
         stateTimer -= dt;
-        if (stateTimer <= 0.0f || animator.isFinished) {
-            SetState(PlayerState::Idle);
-        }
+        if (stateTimer <= 0.0f || animator.isFinished) SetState(PlayerState::Idle);
         return;
     }
 
@@ -148,13 +138,12 @@ void Player::Update(float dt) {
     if (IsKeyDown(KEY_D)) moveDir.x += 1.0f;
 
     const bool moving = moveDir.x != 0.0f || moveDir.y != 0.0f;
-    const float baseSpeed = 250.0f;
+    const float baseSpeed = 245.0f;
 
     if (moving) {
         const float len = std::sqrt(moveDir.x * moveDir.x + moveDir.y * moveDir.y);
-        const float speed = baseSpeed;
-        position.x += (moveDir.x / len) * speed * dt;
-        position.y += (moveDir.y / len) * speed * 0.70f * dt;
+        position.x += (moveDir.x / len) * baseSpeed * dt;
+        position.y += (moveDir.y / len) * baseSpeed * 0.70f * dt;
         if (moveDir.x < 0.0f) facing = Facing::Left;
         if (moveDir.x > 0.0f) facing = Facing::Right;
         if (state != PlayerState::Walk) SetState(PlayerState::Walk);
@@ -180,7 +169,7 @@ void Player::Update(float dt) {
 
     if (IsKeyPressed(KEY_J)) {
         comboStep = (comboWindow > 0.0f) ? (comboStep + 1) % 3 : 0;
-        beginAttack(AttackType::Punch, 0.30f, 5, 9, 0.06f);
+        beginAttack(AttackType::Punch, 0.30f, 5, 9, 0.055f);
         return;
     }
 
@@ -192,7 +181,7 @@ void Player::Update(float dt) {
 
     if (IsKeyPressed(KEY_L) && sp >= 20) {
         sp -= 20;
-        beginAttack(AttackType::Energy, 0.46f, 5, 9, 0.07f);
+        beginAttack(AttackType::Energy, 0.46f, 5, 9, 0.065f);
         return;
     }
 
@@ -211,9 +200,9 @@ void Player::Update(float dt) {
 
 bool Player::AttackIsActive() const {
     if (state != PlayerState::Attack) return false;
-    if (attackType == AttackType::Punch) return attackElapsed >= 0.085f && attackElapsed <= 0.205f;
-    if (attackType == AttackType::Kick) return attackElapsed >= 0.10f && attackElapsed <= 0.255f;
-    if (attackType == AttackType::Energy) return attackElapsed >= 0.16f && attackElapsed <= 0.36f;
+    if (attackType == AttackType::Punch) return attackElapsed >= 0.075f && attackElapsed <= 0.205f;
+    if (attackType == AttackType::Kick) return attackElapsed >= 0.095f && attackElapsed <= 0.26f;
+    if (attackType == AttackType::Energy) return attackElapsed >= 0.15f && attackElapsed <= 0.37f;
     return false;
 }
 
@@ -242,38 +231,61 @@ float Player::GetAttackKnockback() const {
     return 300.0f;
 }
 
+CombatBox Player::GetHurtbox() const {
+    return {position.x - 25.0f, position.y - 112.0f, 50.0f, 105.0f};
+}
+
+CombatBox Player::GetAttackHitbox() const {
+    if (!AttackIsActive()) return {};
+    const float direction = facing == Facing::Right ? 1.0f : -1.0f;
+    float width = 82.0f;
+    float height = 48.0f;
+    float forward = 54.0f;
+    float centerY = position.y - 76.0f;
+
+    if (attackType == AttackType::Kick) {
+        width = 122.0f;
+        height = 58.0f;
+        forward = 66.0f;
+        centerY = position.y - 64.0f;
+    } else if (attackType == AttackType::Energy) {
+        width = 220.0f;
+        height = 76.0f;
+        forward = 122.0f;
+        centerY = position.y - 72.0f;
+    }
+
+    const float centerX = position.x + direction * forward;
+    return {centerX - width * 0.5f, centerY - height * 0.5f, width, height};
+}
+
 void Player::TakeDamage(int damage) {
     if (state == PlayerState::Hit || state == PlayerState::Defeat) return;
     hp = std::max(0, hp - damage);
     rage = std::min(maxRage, rage + 15);
-    if (hp == 0) {
-        SetState(PlayerState::Defeat);
-    } else {
-        SetState(PlayerState::Hit);
-    }
+    if (hp == 0) SetState(PlayerState::Defeat);
+    else SetState(PlayerState::Hit);
 }
 
 void Player::Draw() const {
     const Vector2 screenPos = position.ToScreen();
     DrawEllipse(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-                42.0f, 13.0f, {0, 0, 0, 150});
+                34.0f, 10.0f, {0, 0, 0, 150});
 
     if (animator.texture.id != 0) {
-        float scale = 1.45f;
+        constexpr float kPlayerScale = 0.72f;
         Color tint = WHITE;
         if (state == PlayerState::Hit) tint = {255, 190, 190, 255};
         if (isRageMode) tint = {190, 220, 255, 255};
-        animator.Draw(screenPos, scale, facing == Facing::Left, tint);
+        animator.Draw(screenPos, kPlayerScale, facing == Facing::Left, tint);
 
         if (isRageMode) {
-            const float pulse = 48.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f;
-            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 65), pulse, {0, 170, 255, 100});
+            const float pulse = 40.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f;
+            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 58), pulse, {0, 170, 255, 110});
         }
     } else {
         Color c = state == PlayerState::Hit ? RED : state == PlayerState::Attack ? YELLOW : BLUE;
-        DrawRectangle(static_cast<int>(screenPos.x - 20), static_cast<int>(screenPos.y - 80), 40, 80, c);
-        const int eyeX = static_cast<int>(facing == Facing::Right ? screenPos.x + 10 : screenPos.x - 20);
-        DrawRectangle(eyeX, static_cast<int>(screenPos.y - 70), 10, 10, SKYBLUE);
+        DrawRectangle(static_cast<int>(screenPos.x - 18), static_cast<int>(screenPos.y - 68), 36, 68, c);
     }
 }
 
