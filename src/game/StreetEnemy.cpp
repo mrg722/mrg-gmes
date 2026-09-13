@@ -75,7 +75,6 @@ void EnsureAnimator(Animator& animator, StreetEnemyType type) {
         animator.Play({0, 3, 0.12f, true});
         return;
     }
-
 }
 
 void DrawFallbackEnemy(Vector2 screenPos, const Stats& stats, StreetEnemyType type,
@@ -277,10 +276,13 @@ void StreetEnemy::TakeDamage(int damage, Vector3D knockback) {
     if (hp == 0) {
         state = StreetEnemyState::Defeat;
         stateTimer = 0.85f;
-        animator.isFinished = false;
-        animator.isPlaying = false;
-        animator.currentFrame = animator.frames.empty() ? animator.currentFrame :
-            std::min(animator.currentFrame, static_cast<int>(animator.frames.size()) - 1);
+        if (animator.texture.id != 0) {
+            // Frames 10-11 are the authored defeat pair in the 4x3 enemy atlas.
+            animator.Play({10, 11, 0.14f, false});
+        } else {
+            animator.isFinished = true;
+            animator.isPlaying = false;
+        }
     } else {
         state = StreetEnemyState::Hit;
         stateTimer = 0.38f;
