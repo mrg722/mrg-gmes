@@ -25,6 +25,7 @@ add_library(district_fury_core
     src/game/Enemy.cpp
     src/game/Scene.cpp
     src/game/GameManager.cpp
+    src/rendering/AssetManager.cpp
 )
 target_include_directories(district_fury_core PUBLIC src)
 target_link_libraries(district_fury_core PUBLIC raylib)
