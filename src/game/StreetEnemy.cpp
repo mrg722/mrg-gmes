@@ -23,8 +23,10 @@ float DepthScale(float y){const float t=std::clamp((y-kLaneMinY)/(kLaneMaxY-kLan
 const char* TextureKeyFor(StreetEnemyType type){switch(type){case StreetEnemyType::Brute:return "brute_clean";case StreetEnemyType::Charger:return "charger_clean";case StreetEnemyType::Enforcer:return "enforcer_clean";case StreetEnemyType::ChemicalSoldier:return "enforcer_clean";case StreetEnemyType::UrbanNinja:return "charger_clean";case StreetEnemyType::Mutant:return "brute_clean";case StreetEnemyType::ArmoredGuard:return "enforcer_clean";default:return "punk_clean";}}
 struct EnemyAnimationLayout { int columns; int rows; int idleStart; int idleEnd; int walkStart; int walkEnd; int attackStart; int attackEnd; int hitFrame; int deathStart; int deathEnd; };
 // Authored enemy PNGs are 512x384, i.e. a real 4-column x 3-row atlas of 128x128 frames.
-// Row 0: idle, row 1: attack, row 2: hit/knockdown/death.
-EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,4,7,8,9,8,10,11}; }
+// Row 0 is the only non-attack locomotion/idle set currently authored; row 1 is attack;
+// row 2 contains hit/knockdown/death poses. Walking therefore reuses the safe idle cycle
+// instead of displaying attack poses while an enemy is merely approaching the player.
+EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,0,3,4,7,8,10,11}; }
 void EnsureAnimator(Animator& a,StreetEnemyType type){
     if(a.texture.id!=0)return;
     const EnemyAnimationLayout layout=LayoutFor(type);
