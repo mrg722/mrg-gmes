@@ -17,7 +17,11 @@ enum class StreetEnemyType {
     Punk,
     Brute,
     Charger,
-    Enforcer
+    Enforcer,
+    ChemicalSoldier,
+    UrbanNinja,
+    Mutant,
+    ArmoredGuard
 };
 
 class StreetEnemy {
