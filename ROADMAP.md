@@ -19,33 +19,36 @@
 - Composición del escenario orientada a mostrar 2–4 enemigos sin saturar la pantalla.
 - Preparación de dirección artística para fondos por capas y mayor riqueza visual.
 
-## DF-006 — Combat 2.0
+## DF-006 — Combat 2.0 🔧
 - Combos encadenables reales.
 - Hitbox/hurtbox por ataque y frame.
 - Knockdown, launch, wall hit e invulnerabilidad.
 - Proyectiles y eventos de impacto.
 - VFX y audio de impacto.
 
-## DF-007 — Stage 1: Slum District
-- Calle completa con tramos, arenas y transiciones.
-- Props, parallax y composición visual consistente.
-- Brakk "The Chain" como boss original.
+## DF-007 — Stage 1: Slum District ✅
+- Cuatro escenarios narrativamente conectados: Slum District, Old Market/Canal, Steel Gate/Freight Route y Chain Yard.
+- Arenas bloqueadas y desbloqueadas por limpieza de encuentros.
+- Gatekeepers fuertes al final de los tres primeros escenarios.
+- Brakk "The Chain" como boss final con tres fases, telegraphs, guard, ataques cuerpo a cuerpo, charge y Power Wave.
 - Stage Clear, score y rango D→SSS.
+- Menú, controles, pausa, Game Over y persistencia básica integrados.
 
-## DF-008 — Stage 2: Old Steel Yard
-- Completar identidad industrial/química.
-- Grinder y variantes de enemigos.
-- Boss y arenas específicas.
+## DF-008 — Stage 2: Old Steel Yard ✅
+- Identidad industrial/química y Deep Line.
+- Chemical Soldier, Urban Ninja, Mutant y Armored Guard.
+- Grinder con tres fases y arenas específicas.
+- Energy Wave, HUD, Stage Clear y flujo jugable.
 
 ## DF-009 — Stage 3: Astra Tower
 - Entorno tecnológico/corporativo.
 - Enemigos avanzados.
 - Titan-X como jefe final.
 
-## DF-010 — Sistemas y release PC
+## DF-010 — Sistemas y release PC 🔧
 - Menús completos.
-- Guardado/carga.
-- Dificultad.
+- Guardado/carga robusto.
+- Dificultad con diferencias reales de presión/IA.
 - XP, coins, gems, level y mejoras.
 - Desbloqueo de stages.
 - Audio y VFX finales.
