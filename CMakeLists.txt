@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(DistrictFury VERSION 0.3.0 LANGUAGES CXX)
+project(DistrictFury VERSION 0.3.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,6 +18,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(raylib)
 
 add_library(district_fury_core
+    src/audio/AudioSystem.cpp
     src/core/ApplicationState.cpp
     src/game/Player.cpp
     src/game/StreetEnemy.cpp
