@@ -2,6 +2,7 @@
 #include "audio/AudioSystem.h"
 #include "game/Stage1StoryGame.h"
 #include "game/Stage2Game.h"
+#include "game/Stage3Game.h"
 #include "core/ApplicationState.h"
 #include "rendering/AssetManager.h"
 
@@ -17,9 +18,11 @@ int main() {
 
     district_fury::Stage1StoryGame stage1;
     district_fury::Stage2Game stage2;
+    district_fury::Stage3Game stage3;
     stage1.Init();
     stage2.Init();
-    bool usingStage2 = false;
+    stage3.Init();
+    int activeStage = 1;
 
     district_fury::core::ApplicationState state = district_fury::core::ApplicationState::Running;
     while (district_fury::core::shouldContinue(state)) {
@@ -28,18 +31,21 @@ int main() {
             continue;
         }
 
-        if (IsKeyPressed(KEY_F2)) { usingStage2 = true; stage2.Init(); }
-        if (IsKeyPressed(KEY_F3)) { usingStage2 = false; stage1.Init(); }
+        if (IsKeyPressed(KEY_F1)) { activeStage = 1; stage1.Init(); }
+        if (IsKeyPressed(KEY_F2)) { activeStage = 2; stage2.Init(); }
+        if (IsKeyPressed(KEY_F3)) { activeStage = 3; stage3.Init(); }
 
-        if (usingStage2) stage2.Update(GetFrameTime());
-        else stage1.Update(GetFrameTime());
+        if (activeStage == 1) stage1.Update(GetFrameTime());
+        else if (activeStage == 2) stage2.Update(GetFrameTime());
+        else stage3.Update(GetFrameTime());
 
         BeginDrawing();
         ClearBackground({8, 11, 11, 255});
-        if (usingStage2) stage2.Draw();
-        else stage1.Draw();
-        DrawRectangle(1040, 684, 224, 24, {5, 8, 10, 185});
-        DrawText("F2 STAGE 2  |  F3 STAGE 1", 1050, 689, 12, {180, 200, 205, 210});
+        if (activeStage == 1) stage1.Draw();
+        else if (activeStage == 2) stage2.Draw();
+        else stage3.Draw();
+        DrawRectangle(1010, 684, 254, 24, {5, 8, 10, 185});
+        DrawText("F1 S1  |  F2 S2  |  F3 S3", 1020, 689, 12, {180, 200, 205, 210});
         EndDrawing();
     }
 

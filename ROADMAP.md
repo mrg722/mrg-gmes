@@ -40,10 +40,14 @@
 - Grinder con tres fases y arenas específicas.
 - Energy Wave, HUD, Stage Clear y flujo jugable.
 
-## DF-009 — Stage 3: Astra Tower
-- Entorno tecnológico/corporativo.
-- Enemigos avanzados.
-- Titan-X como jefe final.
+## DF-009 — Stage 3: Astra Tower ✅
+- Tres escenarios conectados: Public Atrium, Research Floor y Executive Core.
+- Roster avanzado: Urban Ninja, Chemical Soldier, Mutant y Armored Guard.
+- Gatekeepers en los dos primeros escenarios y progresión bloqueada por limpieza.
+- Titan-X como boss final con tres fases, guard adaptativo, dash, proyectiles y ataques de proximidad.
+- HUD de boss, telegraph visual, hitstop, partículas, score y rango D→SSS.
+- Dificultad Easy/Normal/Hard con diferencias de vida y daño.
+- Integración al ejecutable principal mediante F3.
 
 ## DF-010 — Sistemas y release PC 🔧
 - Menús completos.
