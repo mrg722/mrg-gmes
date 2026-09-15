@@ -24,27 +24,23 @@ const char* TextureKeyFor(StreetEnemyType type){switch(type){case StreetEnemyTyp
 void EnsureAnimator(Animator& a,StreetEnemyType type){if(a.texture.id!=0)return;Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));if(t.id!=0){a.Init(t,4,3,true);a.Play({0,3,0.12f,true});}}
 void DrawFallbackEnemy(Vector2 p,const Stats&s,StreetEnemyType type,float scale,Color tint){const float w=s.bodyWidth*scale,h=s.bodyHeight*scale;const int x=(int)(p.x-w*.5f),y=(int)(p.y-h),bw=(int)w,bh=(int)(h*.62f),by=y+(int)(h*.32f);if(type==StreetEnemyType::Punk){DrawTriangle({(float)(x+bw/2),(float)y},{(float)(x+bw),(float)by},{(float)x,(float)by},tint);DrawRectangle(x+bw/4,by,bw/2,bh,tint);}else if(type==StreetEnemyType::Charger||type==StreetEnemyType::UrbanNinja){DrawRectangle(x+bw/5,by,bw*3/5,bh,tint);DrawLine(x+bw/5,by+bh,x,(int)p.y,tint);DrawLine(x+bw*4/5,by+bh,x+bw,(int)p.y,tint);}else if(type==StreetEnemyType::Brute||type==StreetEnemyType::Mutant){DrawRectangle(x,by,bw,bh,tint);DrawCircle(x+bw/2,y+(int)(h*.2f),bw*.24f,tint);if(type==StreetEnemyType::Mutant){DrawCircle(x+bw/2-13,y+(int)(h*.2f),4,{180,255,80,255});DrawCircle(x+bw/2+13,y+(int)(h*.2f),4,{180,255,80,255});}}else{DrawRectangle(x+bw/8,by,bw*3/4,bh,tint);DrawRectangle(x+bw/4,y,bw/2,(int)(h*.32f),tint);DrawRectangle(x,by+bh/4,bw/6,bh/2,tint);DrawRectangle(x+bw*5/6,by+bh/4,bw/6,bh/2,tint);}}
 }
-
 StreetEnemy::StreetEnemy(){Init({900.0f,560.0f,0.0f},StreetEnemyType::Punk);}
 void StreetEnemy::Init(Vector3D startPos,StreetEnemyType enemyType){const Stats s=GetStats(enemyType);position=startPos;velocity={0,0,0};facing=Facing::Left;state=StreetEnemyState::Idle;type=enemyType;active=false;hp=s.hp;maxHp=s.hp;moveSpeed=s.speed;attackDamage=s.damage;attackRange=s.range;attackDepth=s.depth;attackDuration=s.attackDuration;stateTimer=0;attackElapsed=0;attackCooldown=0;hasHit=false;animator=Animator{};}
 void StreetEnemy::Activate(){active=true;if(state==StreetEnemyState::Defeat)return;state=StreetEnemyState::Idle;hasHit=false;}
-
 void StreetEnemy::Update(float dt,const Player& player){
     if(!active)return; EnsureAnimator(animator,type); animator.Update(dt); attackCooldown=std::max(0.0f,attackCooldown-dt);
-    if(state==StreetEnemyState::Defeat){stateTimer-=dt;return;}
+    if(state==StreetEnemyState::Defeat){stateTimer-=dt;if(stateTimer<=0)active=false;return;}
     if(state==StreetEnemyState::Hit){stateTimer-=dt;position.x+=velocity.x*dt;position.y+=velocity.y*dt;velocity.x*=.84f;velocity.y*=.84f;if(stateTimer<=0){state=StreetEnemyState::Idle;animator.Play({0,3,.12f,true});}position.x=std::clamp(position.x,kStageStartX,kStageEndX-90.f);position.y=std::clamp(position.y,kLaneMinY,kLaneMaxY);return;}
-    if(state==StreetEnemyState::Attack){stateTimer-=dt;attackElapsed+=dt;if(stateTimer<=0||animator.isFinished){state=StreetEnemyState::Idle;attackCooldown=.20f;animator.Play({0,3,.12f,true});}return;}
+    if(state==StreetEnemyState::Attack){stateTimer-=dt;attackElapsed+=dt;if(stateTimer<=0||animator.isFinished){state=StreetEnemyState::Idle;attackCooldown=.65f;animator.Play({0,3,.12f,true});}return;}
     if(player.state==PlayerState::Defeat)return;
     const float dx=player.position.x-position.x,dy=player.position.y-position.y;const float horizontal=std::abs(dx),depth=std::abs(dy),distance=std::sqrt(dx*dx+dy*dy);facing=dx>=0?Facing::Right:Facing::Left;
-    // Keep a personal space ring around Rayden. Enemies can pressure him but cannot occupy his hurtbox.
-    const float stopDistance=std::max(78.0f,attackRange*0.62f);
+    const float stopDistance=std::max(82.0f,attackRange*0.62f);
     if(horizontal<attackRange&&depth<attackDepth&&horizontal>stopDistance&&attackCooldown<=0){state=StreetEnemyState::Attack;stateTimer=attackDuration;attackElapsed=0;hasHit=false;const float speed=type==StreetEnemyType::UrbanNinja?.055f:type==StreetEnemyType::ChemicalSoldier?.09f:.10f;animator.Play({4,6,speed,false});return;}
     if(horizontal<=stopDistance&&depth<attackDepth){state=StreetEnemyState::Idle;if(animator.isFinished||animator.currentFrame>3)animator.Play({0,3,.12f,true});position.y+=(dy>0?1.f:-1.f)*std::min(std::abs(dy),18.f)*dt;return;}
     if(distance<820.f){state=StreetEnemyState::Chase;float chaseSpeed=moveSpeed;if(type==StreetEnemyType::Mutant&&distance>280)chaseSpeed*=.82f;if(type==StreetEnemyType::ChemicalSoldier&&horizontal<360)chaseSpeed*=.78f;if(distance>.001f){position.x+=(dx/distance)*chaseSpeed*dt;position.y+=(dy/distance)*chaseSpeed*.72f*dt;}if(animator.isFinished||!animator.isPlaying||animator.currentFrame>3)animator.Play({0,3,.12f,true});}
     else{state=StreetEnemyState::Idle;if(animator.isFinished||animator.currentFrame>3)animator.Play({0,3,.12f,true});}
     position.x=std::clamp(position.x,kStageStartX,kStageEndX-90.f);position.y=std::clamp(position.y,kLaneMinY,kLaneMaxY);
 }
-
 bool StreetEnemy::AttackIsActive() const{return state==StreetEnemyState::Attack&&attackElapsed>=attackDuration*.34f&&attackElapsed<=attackDuration*.74f;}
 bool StreetEnemy::IsDefeated() const{return state==StreetEnemyState::Defeat;}
 CombatBox StreetEnemy::GetHurtbox() const{if(!active||IsDefeated())return{};const Stats s=GetStats(type);return{position.x-s.bodyWidth*.5f,position.y-s.bodyHeight,s.bodyWidth,s.bodyHeight};}
