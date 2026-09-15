@@ -124,15 +124,26 @@ public:
             const SpriteFrame& frame = frames[static_cast<std::size_t>(safeFrame)];
             const float width = frame.width * scale;
             const float height = frame.height * scale;
+            if (width <= 0.0f || height <= 0.0f || frame.source.width <= 0.0f || frame.source.height <= 0.0f) return;
+
             const Rectangle source = {
                 frame.source.x,
                 frame.source.y,
                 flipX ? -frame.source.width : frame.source.width,
                 frame.source.height
             };
+
+            // Los pivotes de SpriteFrame se almacenan en coordenadas de la celda
+            // original de 128x128. Al recortar source hay que trasladarlos al origen
+            // del recorte; al voltear, el eje X también debe reflejarse.
+            const float pivotXInCrop = frame.pivotX - frame.source.x;
+            const float pivotYInCrop = frame.pivotY - frame.source.y;
+            const float drawPivotX = flipX ? width - pivotXInCrop * scale : pivotXInCrop * scale;
+            const float drawPivotY = pivotYInCrop * scale;
+
             const Rectangle dest = {
-                feetPosition.x - frame.pivotX * scale,
-                feetPosition.y - frame.pivotY * scale,
+                feetPosition.x - drawPivotX,
+                feetPosition.y - drawPivotY,
                 width,
                 height
             };
@@ -158,8 +169,6 @@ public:
             frameHeight
         };
 
-        // Clean DF-006 atlases are exported to fixed cells and treated as authored
-        // artwork. The character's world position is its foot anchor, not its center.
         if (normalizedAtlas) {
             const float width = frameWidth * scale;
             const float height = frameHeight * scale;
@@ -173,7 +182,6 @@ public:
             return;
         }
 
-        // Legacy fallback: inset one pixel to reduce neighbouring-frame sampling.
         const int inset = (x1 - x0 > 4 && y1 - y0 > 4) ? 1 : 0;
         const float safeWidth = frameWidth - inset * 2.0f;
         const float safeHeight = frameHeight - inset * 2.0f;
