@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace district_fury {
@@ -39,83 +40,74 @@ const char* TextureKeyFor(StreetEnemyType type){
 struct EnemyAnimationLayout { int columns; int rows; int idleStart; int idleEnd; int walkStart; int walkEnd; int attackStart; int attackEnd; int hitFrame; int deathStart; int deathEnd; };
 EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,0,3,4,7,8,10,11}; }
 
-// Coordenadas de cada recorte dentro de su celda 128x128.
-// pivotX/pivotY se expresan en coordenadas de la celda original, antes del recorte.
-// Cada enemigo tiene su propio conjunto: no se reutilizan bounds de otro atlas.
-struct FrameBounds { int x; int y; int w; int h; float pivotX; float pivotY; };
-using FrameSet = std::array<FrameBounds,12>;
-
-const FrameSet kPunkFrames = {{
-    {22,6,81,121,63.3f,127.0f},{15,8,81,119,55.7f,127.0f},{19,6,84,121,60.8f,127.0f},{25,5,84,122,66.9f,127.0f},
-    {17,11,89,112,61.3f,123.0f},{12,11,116,112,60.7f,123.0f},{0,9,107,114,59.6f,123.0f},{21,10,89,113,66.0f,123.0f},
-    {17,3,90,107,55.6f,110.0f},{13,35,115,74,59.6f,109.0f},{0,36,128,73,54.2f,109.0f},{0,70,123,40,57.7f,110.0f}
-}};
-const FrameSet kChargerFrames = {{
-    {19,10,91,118,63.7f,128.0f},{20,11,90,117,63.9f,128.0f},{18,10,89,118,60.6f,128.0f},{14,10,93,118,59.8f,128.0f},
-    {10,0,118,128,60.5f,128.0f},{0,0,116,128,33.8f,128.0f},{6,0,122,128,55.8f,128.0f},{0,0,112,128,65.0f,128.0f},
-    {10,0,99,117,67.7f,117.0f},{19,0,109,116,66.2f,116.0f},{0,0,128,117,60.3f,117.0f},{0,0,117,115,54.7f,115.0f}
-}};
-const FrameSet kBruteFrames = {{
-    {26,7,88,121,68.4f,128.0f},{19,10,99,118,69.3f,128.0f},{17,10,96,118,64.1f,128.0f},{16,9,87,119,59.4f,128.0f},
-    {16,0,103,128,65.8f,128.0f},{11,0,117,128,62.7f,128.0f},{0,0,128,128,60.8f,128.0f},{0,0,112,128,61.5f,128.0f},
-    {26,8,96,105,79.0f,113.0f},{24,16,91,97,61.2f,113.0f},{23,42,105,73,66.3f,115.0f},{0,68,121,48,55.7f,116.0f}
-}};
-
-// Metadatos calibrados para las cuatro hojas nuevas suministradas en esta tarea.
-const FrameSet kChemicalSoldierFrames = {{
-    {26,11,82,117,67,128},{13,16,89,112,64,128},{11,17,87,111,61,128},{6,13,93,115,58,128},
-    {20,0,108,128,63,128},{0,0,128,128,66,128},{0,0,128,128,61,128},{0,0,116,119,54,92},
-    {20,0,90,114,70,114},{8,0,120,114,52,114},{0,0,128,106,52,106},{0,61,107,46,54,107}
-}};
-const FrameSet kUrbanNinjaFrames = {{
-    {26,18,87,110,64,128},{16,18,100,110,65,128},{10,20,97,108,61,128},{9,20,95,108,60,128},
-    {21,22,107,106,69,128},{0,0,128,124,82,124},{0,0,128,126,35,121},{0,0,117,126,61,126},
-    {22,0,93,113,65,113},{25,31,103,81,60,112},{0,42,128,67,52,109},{0,66,104,41,52,107}
-}};
-const FrameSet kMutantFrames = {{
-    {19,13,108,115,64,128},{8,15,120,113,62,128},{0,13,114,115,59,128},{0,13,110,115,57,128},
-    {14,0,114,128,63,128},{0,0,128,123,64,123},{0,0,128,128,61,128},{0,0,109,128,55,128},
-    {16,0,112,116,58,116},{19,8,100,108,62,116},{0,0,128,114,54,114},{0,0,113,113,53,113}
-}};
-const FrameSet kArmoredGuardFrames = {{
-    {20,11,93,117,64,128},{16,12,94,116,64,128},{8,13,120,115,63,128},{0,14,109,114,62,128},
-    {14,0,111,128,65,128},{1,0,127,128,66,128},{0,0,128,128,64,128},{0,0,115,128,63,128},
-    {18,0,99,113,60,113},{19,0,109,112,60,112},{0,0,113,112,55,112},{0,0,116,109,55,109}
-}};
-
-const FrameSet& BoundsFor(StreetEnemyType type){
-    switch(type){
-        case StreetEnemyType::Punk:return kPunkFrames;
-        case StreetEnemyType::Charger:return kChargerFrames;
-        case StreetEnemyType::Brute:return kBruteFrames;
-        case StreetEnemyType::Enforcer:return kPunkFrames;
-        case StreetEnemyType::ChemicalSoldier:return kChemicalSoldierFrames;
-        case StreetEnemyType::UrbanNinja:return kUrbanNinjaFrames;
-        case StreetEnemyType::Mutant:return kMutantFrames;
-        case StreetEnemyType::ArmoredGuard:return kArmoredGuardFrames;
-        default:return kPunkFrames;
-    }
-}
-
-std::vector<SpriteFrame> BuildSpriteFrames(StreetEnemyType type){
-    const FrameSet& bounds=BoundsFor(type);
+// Mide cada celda del atlas directamente desde su alpha. Esto evita mantener una
+// tabla de bounds dependiente del enemigo y elimina el riesgo de reutilizar la
+// geometria de otro personaje.
+std::vector<SpriteFrame> BuildSpriteFrames(Texture2D texture){
     std::vector<SpriteFrame> result;
-    result.reserve(bounds.size());
-    for(std::size_t i=0;i<bounds.size();++i){
-        const FrameBounds& b=bounds[i];
+    if(texture.id==0||texture.width!=512||texture.height!=384)return result;
+
+    Image image=LoadImageFromTexture(texture);
+    if(image.data==nullptr)return result;
+    ImageFormat(&image,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    if(image.data==nullptr||image.width!=512||image.height!=384){UnloadImage(image);return result;}
+
+    const Color* pixels=static_cast<const Color*>(image.data);
+    result.reserve(12);
+    for(int frameIndex=0;frameIndex<12;++frameIndex){
+        const int cellX=(frameIndex%4)*128;
+        const int cellY=(frameIndex/4)*128;
+        int minX=128,minY=128,maxX=-1,maxY=-1;
+        std::vector<int> lowerXs;
+        lowerXs.reserve(128*16);
+
+        for(int y=0;y<128;++y){
+            for(int x=0;x<128;++x){
+                const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                if(pixel.a<8)continue;
+                minX=std::min(minX,x);minY=std::min(minY,y);
+                maxX=std::max(maxX,x);maxY=std::max(maxY,y);
+            }
+        }
+        if(maxX<minX||maxY<minY){
+            TraceLog(LOG_WARNING,"Distrito Fury: frame %i del atlas enemigo no contiene pixeles alpha",frameIndex);
+            continue;
+        }
+
+        // El ancla horizontal se calcula con la zona inferior del personaje,
+        // no con toda la silueta. Así un arma, cadena o efecto que sobresalga
+        // durante un ataque no mueve el punto de apoyo de los pies.
+        const int lowerStart=std::max(minY,maxY-15);
+        for(int y=lowerStart;y<=maxY;++y){
+            for(int x=minX;x<=maxX;++x){
+                const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                if(pixel.a>=8)lowerXs.push_back(x);
+            }
+        }
+        if(lowerXs.empty()){
+            for(int y=minY;y<=maxY;++y){
+                for(int x=minX;x<=maxX;++x){
+                    const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                    if(pixel.a>=8)lowerXs.push_back(x);
+                }
+            }
+        }
+        std::sort(lowerXs.begin(),lowerXs.end());
+        const float pivotX=static_cast<float>(lowerXs[lowerXs.size()/2]);
+        const float pivotY=static_cast<float>(maxY+1);
+
         SpriteFrame frame;
-        frame.source={(float)((i%4)*128+b.x),(float)((i/4)*128+b.y),(float)b.w,(float)b.h};
-        frame.width=(float)b.w;
-        frame.height=(float)b.h;
-        // Convertimos el pivot de la celda al origen del recorte. Animator::Draw
-        // vuelve a reflejarlo cuando el sprite se dibuja mirando hacia la izquierda.
-        frame.pivotX=b.pivotX-(float)b.x;
-        frame.pivotY=b.pivotY-(float)b.y;
-        frame.duration=(i<4)?0.12f:(i<8?0.09f:0.10f);
-        frame.visualBounds={0,0,(float)b.w,(float)b.h};
+        frame.source={(float)(cellX+minX),(float)(cellY+minY),(float)(maxX-minX+1),(float)(maxY-minY+1)};
+        frame.width=(float)(maxX-minX+1);
+        frame.height=(float)(maxY-minY+1);
+        frame.pivotX=pivotX-(float)minX;
+        frame.pivotY=pivotY-(float)minY;
+        frame.duration=(frameIndex<4)?0.12f:(frameIndex<8?0.09f:0.10f);
+        frame.visualBounds={0,0,frame.width,frame.height};
         result.push_back(frame);
     }
-    return result;
+    UnloadImage(image);
+    return result.size()==12?result:std::vector<SpriteFrame>{};
 }
 
 void EnsureAnimator(Animator& a,StreetEnemyType type){
@@ -123,9 +115,14 @@ void EnsureAnimator(Animator& a,StreetEnemyType type){
     const EnemyAnimationLayout layout=LayoutFor(type);
     Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));
     if(t.id!=0 && t.width==512 && t.height==384){
-        a.Init(t,layout.columns,layout.rows,false);
-        a.SetFrames(BuildSpriteFrames(type));
-        a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+        std::vector<SpriteFrame> measured=BuildSpriteFrames(t);
+        if(measured.size()==12){
+            a.Init(t,layout.columns,layout.rows,false);
+            a.SetFrames(std::move(measured));
+            a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+            return;
+        }
+        TraceLog(LOG_WARNING,"Distrito Fury: atlas enemigo rechazado para %s porque sus 12 frames no pudieron medirse",TextureKeyFor(type));
         return;
     }
     if(t.id!=0)TraceLog(LOG_WARNING,"Distrito Fury: atlas rechazado para %s; se esperaba 512x384 y llegó %ix%i",TextureKeyFor(type),t.width,t.height);
