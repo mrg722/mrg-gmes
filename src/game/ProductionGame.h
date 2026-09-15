@@ -12,7 +12,31 @@ enum class Difficulty { Easy, Normal, Hard };
 enum class BossAttack { None, ChainSwing, GroundSmash, Charge, Frenzy };
 
 struct EnergyProjectile { Vector3D position; float velocity; float life; float radius; int damage; bool active; };
-struct BossState { Vector3D position; Vector3D velocity; int hp; int maxHp; int phase; float stateTimer; float attackTimer; float attackElapsed; float invulnerability; bool hit; bool defeated; BossAttack attack; };
+struct BossState {
+    Vector3D position;
+    Vector3D velocity;
+    int hp;
+    int maxHp;
+    int phase;
+    float stateTimer;
+    float attackTimer;
+    float attackElapsed;
+    float invulnerability;
+    bool hit;
+    bool defeated;
+    BossAttack attack;
+    
+    // Default constructor
+    BossState() = default;
+    
+    // Parameterized constructor for aggregate initialization
+    BossState(Vector3D pos, int hp_val, int maxHp_val, int phase_val, float stateTimer_val,
+              float attackTimer_val, float attackElapsed_val, float invulnerability_val,
+              bool hit_val, bool defeated_val, BossAttack attack_val)
+        : position(pos), velocity({0, 0, 0}), hp(hp_val), maxHp(maxHp_val), phase(phase_val),
+          stateTimer(stateTimer_val), attackTimer(attackTimer_val), attackElapsed(attackElapsed_val),
+          invulnerability(invulnerability_val), hit(hit_val), defeated(defeated_val), attack(attack_val) {}
+};
 struct ProductionParticle { Vector3D position; Vector2 velocity; float life; float maxLife; float size; Color color; };
 
 class ProductionGame {
