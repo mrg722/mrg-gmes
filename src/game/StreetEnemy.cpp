@@ -22,8 +22,19 @@ Color ThreatColor(StreetEnemyType type) { switch(type){case StreetEnemyType::Bru
 float DepthScale(float y){const float t=std::clamp((y-kLaneMinY)/(kLaneMaxY-kLaneMinY),0.0f,1.0f);return 0.86f+0.26f*t;}
 const char* TextureKeyFor(StreetEnemyType type){switch(type){case StreetEnemyType::Brute:return "brute_clean";case StreetEnemyType::Charger:return "charger_clean";case StreetEnemyType::Enforcer:return "enforcer_clean";case StreetEnemyType::ChemicalSoldier:return "enforcer_clean";case StreetEnemyType::UrbanNinja:return "charger_clean";case StreetEnemyType::Mutant:return "brute_clean";case StreetEnemyType::ArmoredGuard:return "enforcer_clean";default:return "punk_clean";}}
 struct EnemyAnimationLayout { int columns; int rows; int idleStart; int idleEnd; int walkStart; int walkEnd; int attackStart; int attackEnd; int hitFrame; int deathStart; int deathEnd; };
-EnemyAnimationLayout LayoutFor(StreetEnemyType type){switch(type){case StreetEnemyType::Charger:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::Brute:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::Enforcer:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::ChemicalSoldier:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::UrbanNinja:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::Mutant:return {4,4,0,3,0,3,4,7,8,12,15};case StreetEnemyType::ArmoredGuard:return {4,4,0,3,0,3,4,7,8,12,15};default:return {4,4,0,3,0,3,4,7,8,12,15};}}
-void EnsureAnimator(Animator& a,StreetEnemyType type){if(a.texture.id!=0)return;const EnemyAnimationLayout layout=LayoutFor(type);Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));if(t.id!=0){a.Init(t,layout.columns,layout.rows,true);a.Play({layout.idleStart,layout.idleEnd,0.12f,true});}}
+// Authored enemy PNGs are 512x384, i.e. a real 4-column x 3-row atlas of 128x128 frames.
+// Row 0: idle, row 1: attack, row 2: hit/knockdown/death.
+EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,4,7,8,9,8,10,11}; }
+void EnsureAnimator(Animator& a,StreetEnemyType type){
+    if(a.texture.id!=0)return;
+    const EnemyAnimationLayout layout=LayoutFor(type);
+    Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));
+    if(t.id!=0){
+        a.Init(t,layout.columns,layout.rows,true);
+        if(t.width!=512||t.height!=384) TraceLog(LOG_WARNING,"District Fury enemy atlas has unexpected dimensions: %ix%i",t.width,t.height);
+        a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+    }
+}
 void PlayIdle(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.idleStart||animator.currentFrame>layout.idleEnd)animator.Play({layout.idleStart,layout.idleEnd,.12f,true});}
 void PlayWalk(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.walkStart||animator.currentFrame>layout.walkEnd)animator.Play({layout.walkStart,layout.walkEnd,.10f,true});}
 void DrawFallbackEnemy(Vector2 p,const Stats&s,StreetEnemyType type,float scale,Color tint){const float w=s.bodyWidth*scale,h=s.bodyHeight*scale;const int x=(int)(p.x-w*.5f),y=(int)(p.y-h),bw=(int)w,bh=(int)(h*.62f),by=y+(int)(h*.32f);if(type==StreetEnemyType::Punk){DrawTriangle({(float)(x+bw/2),(float)y},{(float)(x+bw),(float)by},{(float)x,(float)by},tint);DrawRectangle(x+bw/4,by,bw/2,bh,tint);}else if(type==StreetEnemyType::Charger||type==StreetEnemyType::UrbanNinja){DrawRectangle(x+bw/5,by,bw*3/5,bh,tint);DrawLine(x+bw/5,by+bh,x,(int)p.y,tint);DrawLine(x+bw*4/5,by+bh,x+bw,(int)p.y,tint);}else if(type==StreetEnemyType::Brute||type==StreetEnemyType::Mutant){DrawRectangle(x,by,bw,bh,tint);DrawCircle(x+bw/2,y+(int)(h*.2f),bw*.24f,tint);if(type==StreetEnemyType::Mutant){DrawCircle(x+bw/2-13,y+(int)(h*.2f),4,{180,255,80,255});DrawCircle(x+bw/2+13,y+(int)(h*.2f),4,{180,255,80,255});}}else{DrawRectangle(x+bw/8,by,bw*3/4,bh,tint);DrawRectangle(x+bw/4,y,bw/2,(int)(h*.32f),tint);DrawRectangle(x,by+bh/4,bw/6,bh/2,tint);DrawRectangle(x+bw*5/6,by+bh/4,bw/6,bh/2,tint);}}
