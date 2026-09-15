@@ -12,4 +12,4 @@ inline std::string TranslateGameText(const char* text){
 }
 inline void DrawTextTranslated(const char* text,int posX,int posY,int fontSize,Color color){const std::string translated=TranslateGameText(text);::DrawText(translated.c_str(),posX,posY,fontSize,color);}
 }
-#define DrawText DrawTextTranslated
+#define DrawText district_fury::DrawTextTranslated
