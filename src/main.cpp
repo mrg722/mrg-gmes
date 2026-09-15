@@ -1,6 +1,7 @@
 #include "raylib.h"
+#include "audio/AudioSystem.h"
+#include "game/ProductionGame.h"
 #include "core/ApplicationState.h"
-#include "game/GameManager.h"
 #include "rendering/AssetManager.h"
 
 int main() {
@@ -12,8 +13,9 @@ int main() {
     SetTargetFPS(60);
 
     district_fury::AssetManager::Get().LoadAll();
+    district_fury::AudioSystem::Get().Init();
 
-    district_fury::GameManager game;
+    district_fury::ProductionGame game;
     game.Init();
 
     district_fury::core::ApplicationState state = district_fury::core::ApplicationState::Running;
@@ -23,8 +25,7 @@ int main() {
             continue;
         }
 
-        const float dt = GetFrameTime();
-        game.Update(dt);
+        game.Update(GetFrameTime());
 
         BeginDrawing();
         ClearBackground({8, 11, 11, 255});
@@ -32,6 +33,7 @@ int main() {
         EndDrawing();
     }
 
+    district_fury::AudioSystem::Get().Shutdown();
     district_fury::AssetManager::Get().UnloadAll();
     CloseWindow();
     return 0;

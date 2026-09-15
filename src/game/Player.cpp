@@ -1,5 +1,6 @@
 #include "game/Player.h"
 #include "rendering/AssetManager.h"
+#include "audio/AudioSystem.h"
 #include <algorithm>
 #include <cmath>
 
@@ -38,6 +39,7 @@ void Player::Reset() {
     attackElapsed = 0.0f;
     attackDuration = 0.0f;
     dashTimer = 0.0f;
+    dashInvulnerability = 0.0f;
     comboWindow = 0.0f;
     spRegenAccumulator = 0.0f;
     rageDrainAccumulator = 0.0f;
@@ -102,6 +104,8 @@ void Player::Update(float dt) {
     EnsurePlayerAnimator(animator);
     animator.Update(dt);
 
+    dashInvulnerability = std::max(0.0f, dashInvulnerability - dt);
+
     if (comboWindow > 0.0f) {
         comboWindow -= dt;
         if (comboWindow <= 0.0f) {
@@ -161,7 +165,7 @@ void Player::Update(float dt) {
     if (IsKeyDown(KEY_D)) moveDir.x += 1.0f;
 
     const bool moving = moveDir.x != 0.0f || moveDir.y != 0.0f;
-    const float baseSpeed = 245.0f;
+    const float baseSpeed = isRageMode ? 285.0f : 245.0f;
 
     if (moving) {
         const float len = std::sqrt(moveDir.x * moveDir.x + moveDir.y * moveDir.y);
@@ -176,7 +180,9 @@ void Player::Update(float dt) {
 
     if (IsKeyPressed(KEY_LEFT_SHIFT)) {
         dashTimer = 0.12f;
+        dashInvulnerability = 0.18f;
         SetState(PlayerState::Dash);
+        AudioSystem::Get().Play(Sfx::Dash);
         return;
     }
 
@@ -198,24 +204,28 @@ void Player::Update(float dt) {
     if (IsKeyPressed(KEY_J)) {
         comboStep = (comboWindow > 0.0f) ? (comboStep + 1) % 3 : 0;
         beginAttack(AttackType::Punch, 0.30f, 8, 9, 5, 9, 0.15f);
+        AudioSystem::Get().Play(Sfx::Punch);
         return;
     }
 
     if (IsKeyPressed(KEY_K)) {
         comboStep = 3;
         beginAttack(AttackType::Kick, 0.36f, 10, 11, 10, 14, 0.16f);
+        AudioSystem::Get().Play(Sfx::Kick);
         return;
     }
 
     if (IsKeyPressed(KEY_L) && sp >= 20) {
         sp -= 20;
         beginAttack(AttackType::Energy, 0.48f, 12, 12, 5, 9, 0.24f);
+        AudioSystem::Get().Play(Sfx::EnergyCharge);
         return;
     }
 
     if (IsKeyPressed(KEY_SPACE) && rage >= maxRage && !isRageMode) {
         isRageMode = true;
         rageDrainAccumulator = 0.0f;
+        AudioSystem::Get().Play(Sfx::Rage);
         return;
     }
 
@@ -224,6 +234,11 @@ void Player::Update(float dt) {
         ++sp;
         spRegenAccumulator -= 0.2f;
     }
+}
+
+void Player::AddRage(int amount) {
+    if (amount <= 0 || isRageMode) return;
+    rage = std::min(maxRage, rage + amount);
 }
 
 bool Player::AttackIsActive() const {
@@ -289,9 +304,9 @@ CombatBox Player::GetAttackHitbox() const {
 }
 
 void Player::TakeDamage(int damage) {
-    if (state == PlayerState::Hit || state == PlayerState::Defeat) return;
+    if (state == PlayerState::Hit || state == PlayerState::Defeat || dashInvulnerability > 0.0f) return;
     hp = std::max(0, hp - damage);
-    rage = std::min(maxRage, rage + 15);
+    AddRage(15);
     if (hp == 0) SetState(PlayerState::Defeat);
     else SetState(PlayerState::Hit);
 }
@@ -299,11 +314,11 @@ void Player::TakeDamage(int damage) {
 void Player::Draw() const {
     const Vector2 screenPos = position.ToScreen();
     const float depthScale = DepthScale(position.y);
-    const float visualScale = animator.normalizedAtlas ? 1.04f * depthScale : 0.72f * depthScale;
+    const float visualScale = animator.normalizedAtlas ? 1.10f * depthScale : 0.76f * depthScale;
 
     DrawEllipse(
         static_cast<int>(screenPos.x), static_cast<int>(screenPos.y),
-        28.0f * depthScale, 8.0f * depthScale, {0, 0, 0, 145}
+        30.0f * depthScale, 8.0f * depthScale, {0, 0, 0, 145}
     );
 
     if (animator.texture.id != 0) {
@@ -313,26 +328,16 @@ void Player::Draw() const {
         animator.Draw(screenPos, visualScale, facing == Facing::Left, tint);
 
         if (isRageMode) {
-            const float pulse =
-                (34.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 5.0f) * depthScale;
-            DrawCircleLines(
-                static_cast<int>(screenPos.x),
-                static_cast<int>(screenPos.y - 64.0f * depthScale),
-                pulse,
-                {0, 170, 255, 110}
-            );
+            const float pulse = (38.0f + std::sin(static_cast<float>(GetTime()) * 10.0f) * 6.0f) * depthScale;
+            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 64.0f * depthScale), pulse,
+                            {0, 170, 255, 120});
+            DrawCircleLines(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y - 64.0f * depthScale), pulse * 0.72f,
+                            {120, 230, 255, 90});
         }
     } else {
-        Color c = state == PlayerState::Hit ? RED
-                  : state == PlayerState::Attack ? YELLOW
-                  : BLUE;
-        DrawRectangle(
-            static_cast<int>(screenPos.x - 18 * depthScale),
-            static_cast<int>(screenPos.y - 68 * depthScale),
-            static_cast<int>(36 * depthScale),
-            static_cast<int>(68 * depthScale),
-            c
-        );
+        Color c = state == PlayerState::Hit ? RED : state == PlayerState::Attack ? YELLOW : BLUE;
+        DrawRectangle(static_cast<int>(screenPos.x - 18 * depthScale), static_cast<int>(screenPos.y - 68 * depthScale),
+                      static_cast<int>(36 * depthScale), static_cast<int>(68 * depthScale), c);
     }
 }
 

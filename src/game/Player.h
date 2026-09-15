@@ -40,6 +40,7 @@ public:
     float attackElapsed;
     float attackDuration;
     float dashTimer;
+    float dashInvulnerability;
     float comboWindow;
     float spRegenAccumulator;
     float rageDrainAccumulator;
@@ -56,6 +57,7 @@ public:
     void TakeDamage(int damage);
     void SetState(PlayerState newState);
     void Reset();
+    void AddRage(int amount);
 
     bool AttackIsActive() const;
     int GetAttackDamage() const;
