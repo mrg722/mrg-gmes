@@ -18,8 +18,9 @@ ENEMY_ATLAS_NAMES = (
 )
 EXPECTED_ENEMY_CLIPS = {
     "idle": [0, 1, 2, 3],
-    "walk": [4, 5, 6, 7],
-    "attack": [8, 9],
+    "walk": [0, 1, 2, 3],
+    "attack": [4, 5, 6, 7],
+    "hit": [8, 9],
     "defeat": [10, 11],
 }
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
