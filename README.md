@@ -23,6 +23,25 @@ La base técnica incluye un mundo horizontal, cámara 2D, combate con hitboxes/h
 - Dificultad Easy/Normal/Hard en los story controllers.
 - Build reproducible con CMake + raylib y pruebas automatizadas.
 
+## Integridad de sprites enemigos — DF-011.4
+
+La rama de integridad de sprites usa exclusivamente el atlas correspondiente a cada tipo de enemigo. Chemical Soldier, Urban Ninja, Mutant y Armored Guard no pueden sustituirse por el atlas de otro enemigo.
+
+Todos los atlas enemigos deben ser PNG RGBA de **512x384**, organizados como **4 columnas x 3 filas de 128x128**. La aplicación rechaza un atlas con dimensiones inesperadas y utiliza un fallback procedural coherente si el arte no está disponible o no puede medirse.
+
+Los bounds alfa de los 12 frames se miden desde la propia textura cuando se carga. El recorte se conserva junto con un pivote calculado en la zona inferior del personaje para mantener los pies anclados aunque durante un ataque sobresalgan armas o efectos. Al invertir horizontalmente el personaje, el pivote también se refleja correctamente.
+
+La secuencia común de los atlas enemigos es:
+
+- **0–3:** idle / locomoción
+- **4–7:** ataque
+- **8–9:** impacto
+- **10–11:** derrota
+
+El validador de assets exige los ocho atlas enemigos, verifica sus dimensiones, formato RGBA y que las 12 celdas contengan arte. El CI ejecuta además la compilación Release y las pruebas existentes.
+
+> Los cuatro atlas nuevos deben ser los PNG originales transparentes del paquete de arte. Las imágenes de referencia compuestas no se consideran sustituto del asset original para una validación final de calidad.
+
 ## Controles de PC
 - WASD: movimiento
 - J: punch
