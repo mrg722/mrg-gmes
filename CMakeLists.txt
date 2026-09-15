@@ -27,6 +27,7 @@ add_library(district_fury_core
     src/game/ProductionGame.cpp
     src/game/Stage1StoryGame.cpp
     src/game/Stage2Game.cpp
+    src/game/Stage3Game.cpp
     src/rendering/AssetManager.cpp
 )
 target_include_directories(district_fury_core PUBLIC src)
