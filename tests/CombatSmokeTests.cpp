@@ -17,6 +17,29 @@ int main() {
     assert(player.hp == 80);
     assert(player.rage >= 15);
 
+    player.Reset();
+    player.SetState(PlayerState::Block);
+    player.TakeDamage(20);
+    assert(player.hp == 100);
+    assert(player.shield < player.maxShield);
+    assert(player.IsBlocking());
+
+    player.shield = 20;
+    player.dashInvulnerability = 0;
+    player.TakeDamage(100);
+    assert(player.shield == 0);
+    assert(player.IsGuardBroken());
+
+    player.Reset();
+    player.shield = 40;
+    player.Update(2.0f);
+    assert(player.shield > 40);
+
+    player.TakeDamage(10);
+    const int recoveredHp = player.hp;
+    player.TakeDamage(10);
+    assert(player.hp == recoveredHp);
+
     player.state = PlayerState::Attack;
     player.attackType = AttackType::Punch;
     player.attackElapsed = 0.15f;

@@ -34,3 +34,5 @@
 *.so
 *.dylib
 *.dSYM/
+
+district_fury_save.dat
