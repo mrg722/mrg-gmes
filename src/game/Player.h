@@ -9,6 +9,7 @@ enum class PlayerState {
     Walk,
     Dash,
     Attack,
+    Block,
     Hit,
     Defeat
 };
@@ -44,9 +45,12 @@ public:
     float comboWindow;
     float spRegenAccumulator;
     float rageDrainAccumulator;
+    float blockDamageReduction;
+    float blockTimer;
     int comboCount;
     int comboStep;
     bool hasHit;
+    bool energyReleased;
 
     Animator animator;
 
@@ -60,6 +64,7 @@ public:
     void AddRage(int amount);
 
     bool AttackIsActive() const;
+    bool IsBlocking() const;
     int GetAttackDamage() const;
     float GetAttackRange() const;
     float GetAttackDepthRange() const;

@@ -5,24 +5,8 @@
 
 namespace district_fury {
 
-enum class StreetEnemyState {
-    Idle,
-    Chase,
-    Attack,
-    Hit,
-    Defeat
-};
-
-enum class StreetEnemyType {
-    Punk,
-    Brute,
-    Charger,
-    Enforcer,
-    ChemicalSoldier,
-    UrbanNinja,
-    Mutant,
-    ArmoredGuard
-};
+enum class StreetEnemyState { Idle, Chase, Attack, Hit, Defeat };
+enum class StreetEnemyType { Punk, Brute, Charger, Enforcer, ChemicalSoldier, UrbanNinja, Mutant, ArmoredGuard };
 
 class StreetEnemy {
 public:
@@ -42,17 +26,16 @@ public:
     float attackDuration;
     float stateTimer;
     float attackElapsed;
+    float attackCooldown;
     bool hasHit;
     Animator animator;
 
     StreetEnemy();
-
     void Init(Vector3D startPos, StreetEnemyType enemyType);
     void Activate();
     void Update(float dt, const Player& player);
     void Draw() const;
     void TakeDamage(int damage, Vector3D knockback);
-
     bool AttackIsActive() const;
     bool IsDefeated() const;
     CombatBox GetHurtbox() const;
