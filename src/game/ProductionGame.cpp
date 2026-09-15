@@ -259,14 +259,10 @@ void ProductionGame::UpdateCombat(float dt) {
     if (comboTimer > 0) comboTimer -= dt; else combo = 0;
     player.Update(dt);
 
-    static PlayerState previousState = PlayerState::Idle;
-    static AttackType previousAttack = AttackType::None;
-    if (player.state == PlayerState::Attack && player.attackType == AttackType::Energy &&
-        (previousState != PlayerState::Attack || previousAttack != AttackType::Energy)) {
+    if (player.state == PlayerState::Attack && player.attackType == AttackType::Energy && player.energyReleased) {
         SpawnEnergyProjectile();
+        player.energyReleased = false;
     }
-    previousState = player.state;
-    previousAttack = player.attackType;
 
     if (currentWave == 0) ActivateNearbyEnemies();
     for (auto& e : enemies) if (e.active) e.Update(dt, player);
@@ -520,11 +516,12 @@ void ProductionGame::DrawBoss() const {
 
 void ProductionGame::DrawArenaLock() const {
     if (!arenaLocked) return;
-    const float left = player.position.x - 300;
-    const float right = player.position.x + 300;
-    for (int x = static_cast<int>(left); x <= static_cast<int>(right); x += 24) {
-        DrawRectangle(x, 430, 7, 220, {210,45,55,85});
-        DrawLine(x, 430, x + 45, 385, {255,75,65,65});
+    const int arenaEnd = currentWave == 1 ? 1350 : currentWave == 2 ? 2150 : currentWave == 3 ? 3150 : 4400;
+    const int gate = arenaEnd - 8;
+    for (int i = -2; i <= 2; ++i) {
+        const int x = gate + i * 18;
+        DrawRectangle(x, 420, 6, 220, {210,45,55,145});
+        DrawLine(x, 420, x + 28, 390, {255,75,65,105});
     }
 }
 
