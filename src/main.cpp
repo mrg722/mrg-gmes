@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include "audio/AudioSystem.h"
-#include "game/ProductionGame.h"
+#include "game/Stage1StoryGame.h"
 #include "game/Stage2Game.h"
 #include "core/ApplicationState.h"
 #include "rendering/AssetManager.h"
@@ -15,7 +15,7 @@ int main() {
     district_fury::AssetManager::Get().LoadAll();
     district_fury::AudioSystem::Get().Init();
 
-    district_fury::ProductionGame stage1;
+    district_fury::Stage1StoryGame stage1;
     district_fury::Stage2Game stage2;
     stage1.Init();
     stage2.Init();
