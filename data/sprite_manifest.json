@@ -3,20 +3,20 @@
   "render_target": {"width": 1280, "height": 720, "fps": 60},
   "atlases": {
     "rayden": {"path": "assets/characters/rayden_clean.png", "grid": [4, 4], "cell": [96, 96], "pivot": [48, 95]},
-    "punk": {"path": "assets/enemies/punk_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "charger": {"path": "assets/enemies/charger_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "brute": {"path": "assets/enemies/brute_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "enforcer": {"path": "assets/enemies/enforcer_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "chemical_soldier": {"path": "assets/enemies/chemical_soldier_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "urban_ninja": {"path": "assets/enemies/urban_ninja_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "mutant": {"path": "assets/enemies/mutant_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
-    "armored_guard": {"path": "assets/enemies/armored_guard_clean.png", "grid": [4, 4], "cell": [128, 96], "pivot": [64, 94]},
+    "punk": {"path": "assets/enemies/punk_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "charger": {"path": "assets/enemies/charger_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "brute": {"path": "assets/enemies/brute_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "enforcer": {"path": "assets/enemies/enforcer_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "chemical_soldier": {"path": "assets/enemies/chemical_soldier_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "urban_ninja": {"path": "assets/enemies/urban_ninja_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "mutant": {"path": "assets/enemies/mutant_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
+    "armored_guard": {"path": "assets/enemies/armored_guard_clean.png", "grid": [4, 3], "cell": [128, 128], "pivot": [64, 126]},
     "old_steel_yard": {"path": "assets/backgrounds/old_steel_yard_clean.png", "size": [1280, 720]},
     "old_steel_yard_deep": {"path": "assets/backgrounds/old_steel_yard_deep_clean.png", "size": [1280, 720]}
   },
   "clips": {
     "rayden": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[4,5,6,7],"fps":11},"punch":{"frames":[8,9],"fps":12,"loop":false},"kick":{"frames":[10,11],"fps":12,"loop":false},"energy":{"frames":[12],"fps":14,"loop":false},"hit":{"frames":[13],"fps":9,"loop":false},"dash":{"frames":[14],"fps":18,"loop":false},"defeat":{"frames":[15],"fps":5,"loop":false}},
-    "enemy_default": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[0,1,2,3],"fps":10},"attack":{"frames":[4,5,6,7],"fps":11,"loop":false},"hit":{"frames":[8,9],"fps":10,"loop":false},"defeat":{"frames":[12,13,14,15],"fps":5,"loop":false}}
+    "enemy_default": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[4,5,6,7],"fps":10},"attack":{"frames":[8,9],"fps":11,"loop":false},"defeat":{"frames":[10,11],"fps":5,"loop":false}}
   },
-  "notes": "Enemy atlases use authored 4x4 grids with 128x96 cells. The fourth row contains knockdown/death poses. Runtime maps missing optional enemy variants to the closest available authored atlas without slicing invalid rows."
+  "notes": "DF-008 extends the authored 4x3 enemy atlas language with palette-derived pixel variants for the Old Steel Yard Deep Line. Runtime falls back safely when optional binary art is not installed."
 }
