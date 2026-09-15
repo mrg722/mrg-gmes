@@ -40,4 +40,8 @@ if(BUILD_TESTING)
     add_executable(application_state_tests tests/ApplicationStateTests.cpp)
     target_link_libraries(application_state_tests PRIVATE district_fury_core)
     add_test(NAME application_state_tests COMMAND application_state_tests)
+
+    add_executable(combat_smoke_tests tests/CombatSmokeTests.cpp)
+    target_link_libraries(combat_smoke_tests PRIVATE district_fury_core)
+    add_test(NAME combat_smoke_tests COMMAND combat_smoke_tests)
 endif()
