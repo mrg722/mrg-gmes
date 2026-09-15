@@ -1,25 +1,12 @@
 #pragma once
 #include "game/Types.h"
 #include "rendering/Animator.h"
+#include "ui/SpanishText.h"
 
 namespace district_fury {
 
-enum class PlayerState {
-    Idle,
-    Walk,
-    Dash,
-    Attack,
-    Block,
-    Hit,
-    Defeat
-};
-
-enum class AttackType {
-    None,
-    Punch,
-    Kick,
-    Energy
-};
+enum class PlayerState { Idle, Walk, Dash, Attack, Block, Hit, Defeat };
+enum class AttackType { None, Punch, Kick, Energy };
 
 class Player {
 public:
@@ -28,49 +15,12 @@ public:
     Facing facing;
     PlayerState state;
     AttackType attackType;
-
-    int hp;
-    int maxHp;
-    int sp;
-    int maxSp;
-    int rage;
-    int maxRage;
-    bool isRageMode;
-
-    float stateTimer;
-    float attackElapsed;
-    float attackDuration;
-    float dashTimer;
-    float dashInvulnerability;
-    float comboWindow;
-    float spRegenAccumulator;
-    float rageDrainAccumulator;
-    float blockDamageReduction;
-    float blockTimer;
-    int comboCount;
-    int comboStep;
-    bool hasHit;
-    bool energyReleased;
-
+    int hp; int maxHp; int sp; int maxSp; int rage; int maxRage; bool isRageMode;
+    float stateTimer; float attackElapsed; float attackDuration; float dashTimer; float dashInvulnerability; float comboWindow; float spRegenAccumulator; float rageDrainAccumulator; float blockDamageReduction; float blockTimer;
+    int comboCount; int comboStep; bool hasHit; bool energyReleased;
     Animator animator;
-
     Player();
-
-    void Update(float dt);
-    void Draw() const;
-    void TakeDamage(int damage);
-    void SetState(PlayerState newState);
-    void Reset();
-    void AddRage(int amount);
-
-    bool AttackIsActive() const;
-    bool IsBlocking() const;
-    int GetAttackDamage() const;
-    float GetAttackRange() const;
-    float GetAttackDepthRange() const;
-    float GetAttackKnockback() const;
-    CombatBox GetHurtbox() const;
-    CombatBox GetAttackHitbox() const;
+    void Update(float dt); void Draw() const; void TakeDamage(int damage); void SetState(PlayerState newState); void Reset(); void AddRage(int amount);
+    bool AttackIsActive() const; bool IsBlocking() const; int GetAttackDamage() const; float GetAttackRange() const; float GetAttackDepthRange() const; float GetAttackKnockback() const; CombatBox GetHurtbox() const; CombatBox GetAttackHitbox() const;
 };
-
 }
