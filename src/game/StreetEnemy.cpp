@@ -1,7 +1,9 @@
 #include "game/StreetEnemy.h"
 #include "rendering/AssetManager.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <vector>
 
 namespace district_fury {
 namespace {
@@ -20,27 +22,131 @@ Stats GetStats(StreetEnemyType type) {
 }
 Color ThreatColor(StreetEnemyType type) { switch(type){case StreetEnemyType::Brute:return {220,140,70,255};case StreetEnemyType::Charger:return {90,155,220,255};case StreetEnemyType::Enforcer:return {235,185,70,255};case StreetEnemyType::ChemicalSoldier:return {70,220,115,255};case StreetEnemyType::UrbanNinja:return {90,210,220,255};case StreetEnemyType::Mutant:return {120,225,75,255};case StreetEnemyType::ArmoredGuard:return {120,165,210,255};default:return {225,65,80,255};} }
 float DepthScale(float y){const float t=std::clamp((y-kLaneMinY)/(kLaneMaxY-kLaneMinY),0.0f,1.0f);return 0.86f+0.26f*t;}
-const char* TextureKeyFor(StreetEnemyType type){switch(type){case StreetEnemyType::Brute:return "brute_clean";case StreetEnemyType::Charger:return "charger_clean";case StreetEnemyType::Enforcer:return "enforcer_clean";case StreetEnemyType::ChemicalSoldier:return "enforcer_clean";case StreetEnemyType::UrbanNinja:return "charger_clean";case StreetEnemyType::Mutant:return "brute_clean";case StreetEnemyType::ArmoredGuard:return "enforcer_clean";default:return "punk_clean";}}
+
+// Every authored enemy has its own texture. Never substitute a different enemy atlas:
+// a visually wrong atlas is worse than the coherent procedural fallback.
+const char* TextureKeyFor(StreetEnemyType type){
+    switch(type){
+        case StreetEnemyType::Brute:return "brute_clean";
+        case StreetEnemyType::Charger:return "charger_clean";
+        case StreetEnemyType::Enforcer:return "enforcer_clean";
+        case StreetEnemyType::ChemicalSoldier:return "chemical_soldier_clean";
+        case StreetEnemyType::UrbanNinja:return "urban_ninja_clean";
+        case StreetEnemyType::Mutant:return "mutant_clean";
+        case StreetEnemyType::ArmoredGuard:return "armored_guard_clean";
+        default:return "punk_clean";
+    }
+}
+
 struct EnemyAnimationLayout { int columns; int rows; int idleStart; int idleEnd; int walkStart; int walkEnd; int attackStart; int attackEnd; int hitFrame; int deathStart; int deathEnd; };
-// Authored enemy PNGs are 512x384, i.e. a real 4-column x 3-row atlas of 128x128 frames.
-// Row 0 is the only non-attack locomotion/idle set currently authored; row 1 is attack;
-// row 2 contains hit/knockdown/death poses. Walking therefore reuses the safe idle cycle
-// instead of displaying attack poses while an enemy is merely approaching the player.
 EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,0,3,4,7,8,10,11}; }
+
+// The art packs use fixed 128x128 cells. These bounds were measured from the authored
+// alpha silhouettes. Cropping transparent margins and anchoring to the lower body keeps
+// feet planted while arms/VFX move, preventing the "separated body parts" look caused by
+// treating every frame as a full 128x128 visual rectangle.
+struct FrameBounds { int x; int y; int w; int h; float pivotX; float pivotY; };
+using FrameSet = std::array<FrameBounds,12>;
+
+const FrameSet kPunkFrames = {{
+    {22,6,81,121,63.3f,127.0f},{15,8,81,119,55.7f,127.0f},{19,6,84,121,60.8f,127.0f},{25,5,84,122,66.9f,127.0f},
+    {17,11,89,112,61.3f,123.0f},{12,11,116,112,60.7f,123.0f},{0,9,107,114,59.6f,123.0f},{21,10,89,113,66.0f,123.0f},
+    {17,3,90,107,55.6f,110.0f},{13,35,115,74,59.6f,109.0f},{0,36,128,73,54.2f,109.0f},{0,70,123,40,57.7f,110.0f}
+}};
+const FrameSet kChargerFrames = {{
+    {19,10,91,118,63.7f,128.0f},{20,11,90,117,63.9f,128.0f},{18,10,89,118,60.6f,128.0f},{14,10,93,118,59.8f,128.0f},
+    {10,0,118,128,60.5f,128.0f},{0,0,116,128,33.8f,128.0f},{6,0,122,128,55.8f,128.0f},{0,0,112,128,65.0f,128.0f},
+    {10,0,99,117,67.7f,117.0f},{19,0,109,116,66.2f,116.0f},{0,0,128,117,60.3f,117.0f},{0,0,117,115,54.7f,115.0f}
+}};
+const FrameSet kBruteFrames = {{
+    {26,7,88,121,68.4f,128.0f},{19,10,99,118,69.3f,128.0f},{17,10,96,118,64.1f,128.0f},{16,9,87,119,59.4f,128.0f},
+    {16,0,103,128,65.8f,128.0f},{11,0,117,128,62.7f,128.0f},{0,0,128,128,60.8f,128.0f},{0,0,112,128,61.5f,128.0f},
+    {26,8,96,105,79.0f,113.0f},{24,16,91,97,61.2f,113.0f},{23,42,105,73,66.3f,115.0f},{0,68,121,48,55.7f,116.0f}
+}};
+
+const FrameSet& BoundsFor(StreetEnemyType type){
+    switch(type){
+        case StreetEnemyType::Charger:
+        case StreetEnemyType::UrbanNinja: return kChargerFrames;
+        case StreetEnemyType::Brute:
+        case StreetEnemyType::Enforcer:
+        case StreetEnemyType::ChemicalSoldier:
+        case StreetEnemyType::Mutant:
+        case StreetEnemyType::ArmoredGuard: return kBruteFrames;
+        default:return kPunkFrames;
+    }
+}
+
+std::vector<SpriteFrame> BuildSpriteFrames(StreetEnemyType type){
+    const FrameSet& bounds=BoundsFor(type);
+    std::vector<SpriteFrame> result;
+    result.reserve(bounds.size());
+    for(std::size_t i=0;i<bounds.size();++i){
+        const FrameBounds& b=bounds[i];
+        SpriteFrame frame;
+        frame.source={(float)((i%4)*128+b.x),(float)((i/4)*128+b.y),(float)b.w,(float)b.h};
+        frame.width=(float)b.w; frame.height=(float)b.h;
+        frame.pivotX=b.pivotX; frame.pivotY=b.pivotY;
+        frame.duration=(i<4)?0.12f:(i<8?0.09f:0.10f);
+        frame.visualBounds={0,0,(float)b.w,(float)b.h};
+        result.push_back(frame);
+    }
+    return result;
+}
+
 void EnsureAnimator(Animator& a,StreetEnemyType type){
     if(a.texture.id!=0)return;
     const EnemyAnimationLayout layout=LayoutFor(type);
     Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));
-    if(t.id!=0){
-        a.Init(t,layout.columns,layout.rows,true);
-        if(t.width!=512||t.height!=384) TraceLog(LOG_WARNING,"District Fury enemy atlas has unexpected dimensions: %ix%i",t.width,t.height);
+    if(t.id!=0 && t.width==512 && t.height==384){
+        a.Init(t,layout.columns,layout.rows,false);
+        a.SetFrames(BuildSpriteFrames(type));
         a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+        return;
     }
+    if(t.id!=0)TraceLog(LOG_WARNING,"District Fury enemy atlas rejected for %s: expected 512x384, got %ix%i",TextureKeyFor(type),t.width,t.height);
 }
 void PlayIdle(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.idleStart||animator.currentFrame>layout.idleEnd)animator.Play({layout.idleStart,layout.idleEnd,.12f,true});}
 void PlayWalk(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.walkStart||animator.currentFrame>layout.walkEnd)animator.Play({layout.walkStart,layout.walkEnd,.10f,true});}
-void DrawFallbackEnemy(Vector2 p,const Stats&s,StreetEnemyType type,float scale,Color tint){const float w=s.bodyWidth*scale,h=s.bodyHeight*scale;const int x=(int)(p.x-w*.5f),y=(int)(p.y-h),bw=(int)w,bh=(int)(h*.62f),by=y+(int)(h*.32f);if(type==StreetEnemyType::Punk){DrawTriangle({(float)(x+bw/2),(float)y},{(float)(x+bw),(float)by},{(float)x,(float)by},tint);DrawRectangle(x+bw/4,by,bw/2,bh,tint);}else if(type==StreetEnemyType::Charger||type==StreetEnemyType::UrbanNinja){DrawRectangle(x+bw/5,by,bw*3/5,bh,tint);DrawLine(x+bw/5,by+bh,x,(int)p.y,tint);DrawLine(x+bw*4/5,by+bh,x+bw,(int)p.y,tint);}else if(type==StreetEnemyType::Brute||type==StreetEnemyType::Mutant){DrawRectangle(x,by,bw,bh,tint);DrawCircle(x+bw/2,y+(int)(h*.2f),bw*.24f,tint);if(type==StreetEnemyType::Mutant){DrawCircle(x+bw/2-13,y+(int)(h*.2f),4,{180,255,80,255});DrawCircle(x+bw/2+13,y+(int)(h*.2f),4,{180,255,80,255});}}else{DrawRectangle(x+bw/8,by,bw*3/4,bh,tint);DrawRectangle(x+bw/4,y,bw/2,(int)(h*.32f),tint);DrawRectangle(x,by+bh/4,bw/6,bh/2,tint);DrawRectangle(x+bw*5/6,by+bh/4,bw/6,bh/2,tint);}}
+
+void DrawFallbackEnemy(Vector2 p,const Stats&s,StreetEnemyType type,float scale,Color tint){
+    const float w=s.bodyWidth*scale,h=s.bodyHeight*scale;
+    const float cx=p.x, top=p.y-h, shoulder=top+h*.31f, hip=top+h*.64f;
+    const float headR=w*.18f, torsoW=w*.42f, legW=w*.14f;
+    const Color dark={20,23,27,255};
+    DrawEllipse((int)p.x,(int)p.y,(int)(w*.34f),(int)(h*.07f),{0,0,0,145});
+    if(type==StreetEnemyType::Punk){
+        DrawCircle((int)cx,(int)(top+h*.18f),(int)headR,tint);
+        DrawRectangle((int)(cx-torsoW*.5f),(int)shoulder,(int)torsoW,(int)(h*.34f),tint);
+        DrawRectangle((int)(cx-torsoW*.72f),(int)(shoulder+h*.03f),(int)(torsoW*.24f),(int)(h*.30f),tint);
+        DrawRectangle((int)(cx+torsoW*.48f),(int)(shoulder+h*.03f),(int)(torsoW*.24f),(int)(h*.30f),tint);
+        DrawRectangle((int)(cx-legW*1.45f),(int)hip,(int)legW,(int)(h*.31f),dark);
+        DrawRectangle((int)(cx+legW*.45f),(int)hip,(int)legW,(int)(h*.31f),dark);
+        DrawRectangle((int)(cx-legW*1.75f),(int)(p.y-h*.04f),(int)(legW*1.7f),(int)(h*.05f),tint);
+        DrawRectangle((int)(cx+legW*.15f),(int)(p.y-h*.04f),(int)(legW*1.7f),(int)(h*.05f),tint);
+    } else if(type==StreetEnemyType::Brute||type==StreetEnemyType::Mutant||type==StreetEnemyType::ArmoredGuard){
+        DrawCircle((int)cx,(int)(top+h*.17f),(int)(headR*1.12f),tint);
+        DrawRectangle((int)(cx-torsoW*.62f),(int)shoulder,(int)(torsoW*1.24f),(int)(h*.37f),tint);
+        DrawRectangle((int)(cx-torsoW*.92f),(int)shoulder,(int)(torsoW*.30f),(int)(h*.30f),tint);
+        DrawRectangle((int)(cx+torsoW*.62f),(int)shoulder,(int)(torsoW*.30f),(int)(h*.30f),tint);
+        DrawRectangle((int)(cx-legW*1.7f),(int)hip,(int)(legW*1.25f),(int)(h*.31f),dark);
+        DrawRectangle((int)(cx+legW*.45f),(int)hip,(int)(legW*1.25f),(int)(h*.31f),dark);
+        DrawRectangle((int)(cx-legW*1.95f),(int)(p.y-h*.04f),(int)(legW*1.8f),(int)(h*.05f),tint);
+        DrawRectangle((int)(cx+legW*.25f),(int)(p.y-h*.04f),(int)(legW*1.8f),(int)(h*.05f),tint);
+        if(type==StreetEnemyType::Mutant){DrawCircle((int)(cx-headR*.55f),(int)(top+h*.17f),3,{180,255,80,255});DrawCircle((int)(cx+headR*.55f),(int)(top+h*.17f),3,{180,255,80,255});}
+    } else {
+        DrawCircle((int)cx,(int)(top+h*.17f),(int)headR,tint);
+        DrawRectangle((int)(cx-torsoW*.5f),(int)shoulder,(int)torsoW,(int)(h*.34f),tint);
+        DrawRectangle((int)(cx-torsoW*.95f),(int)shoulder,(int)(torsoW*.30f),(int)(h*.28f),tint);
+        DrawRectangle((int)(cx+torsoW*.65f),(int)shoulder,(int)(torsoW*.30f),(int)(h*.28f),tint);
+        DrawRectangle((int)(cx-legW*1.4f),(int)hip,(int)legW,(int)(h*.31f),dark);
+        DrawRectangle((int)(cx+legW*.4f),(int)hip,(int)legW,(int)(h*.31f),dark);
+        DrawRectangle((int)(cx-legW*1.7f),(int)(p.y-h*.04f),(int)(legW*1.6f),(int)(h*.05f),tint);
+        DrawRectangle((int)(cx+legW*.1f),(int)(p.y-h*.04f),(int)(legW*1.6f),(int)(h*.05f),tint);
+    }
 }
+}
+
 StreetEnemy::StreetEnemy(){Init({900.0f,560.0f,0.0f},StreetEnemyType::Punk);}
 void StreetEnemy::Init(Vector3D startPos,StreetEnemyType enemyType){const Stats s=GetStats(enemyType);position=startPos;velocity={0,0,0};facing=Facing::Left;state=StreetEnemyState::Idle;type=enemyType;active=false;hp=s.hp;maxHp=s.hp;moveSpeed=s.speed;attackDamage=s.damage;attackRange=s.range;attackDepth=s.depth;attackDuration=s.attackDuration;stateTimer=0;attackElapsed=0;attackCooldown=0;hasHit=false;animator=Animator{};}
 void StreetEnemy::Activate(){active=true;if(state==StreetEnemyState::Defeat)return;state=StreetEnemyState::Idle;hasHit=false;}
@@ -64,5 +170,21 @@ CombatBox StreetEnemy::GetHurtbox() const{if(!active||IsDefeated())return{};cons
 CombatBox StreetEnemy::GetAttackHitbox() const{if(!AttackIsActive())return{};const float d=facing==Facing::Right?1.f:-1.f;const float w=attackRange*.68f,h=52.f,cx=position.x+d*attackRange*.52f,cy=position.y-66;return{cx-w*.5f,cy-h*.5f,w,h};}
 const char* StreetEnemy::GetTypeName() const{switch(type){case StreetEnemyType::Brute:return "BRUTE";case StreetEnemyType::Charger:return "CHARGER";case StreetEnemyType::Enforcer:return "ENFORCER";case StreetEnemyType::ChemicalSoldier:return "CHEMICAL";case StreetEnemyType::UrbanNinja:return "URBAN NINJA";case StreetEnemyType::Mutant:return "MUTANT";case StreetEnemyType::ArmoredGuard:return "ARMORED";default:return "PUNK";}}
 void StreetEnemy::TakeDamage(int damage,Vector3D knockback){if(!active||state==StreetEnemyState::Defeat)return;hp=std::max(0,hp-damage);velocity=knockback;const EnemyAnimationLayout layout=LayoutFor(type);if(hp==0){state=StreetEnemyState::Defeat;stateTimer=.85f;if(animator.texture.id!=0)animator.Play({layout.deathStart,layout.deathEnd,.14f,false});else{animator.isFinished=true;animator.isPlaying=false;}}else{state=StreetEnemyState::Hit;stateTimer=.30f;if(animator.texture.id!=0)animator.Play({layout.hitFrame,layout.hitFrame,.09f,false});}}
-void StreetEnemy::Draw() const{if(!active)return;const Stats s=GetStats(type);const Vector2 p=position.ToScreen();const float ds=DepthScale(position.y),vs=(animator.normalizedAtlas?s.scale:.86f)*ds;DrawEllipse((int)p.x,(int)p.y,26*s.scale*ds,8.5f*ds,{0,0,0,145});if(animator.texture.id!=0){Color tint=animator.normalizedAtlas?WHITE:s.fallbackTint;if(state==StreetEnemyState::Hit)tint={255,215,215,255};if(state==StreetEnemyState::Defeat)tint={175,175,175,255};animator.Draw(p,vs,facing==Facing::Left,tint);}else{Color tint=state==StreetEnemyState::Hit?WHITE:state==StreetEnemyState::Defeat?Color{110,110,115,255}:s.fallbackTint;DrawFallbackEnemy(p,s,type,ds,tint);}if(state!=StreetEnemyState::Defeat){const int width=s.scale>=1.08f?82:68;const int x=(int)(p.x-width*.5f),y=(int)(p.y-s.bodyHeight*ds-11);DrawRectangle(x,y,width,6,{8,9,11,210});DrawRectangle(x,y,(int)(width*((float)hp/maxHp)),6,ThreatColor(type));}}
+void StreetEnemy::Draw() const{
+    if(!active)return;
+    const Stats s=GetStats(type);const Vector2 p=position.ToScreen();const float ds=DepthScale(position.y);
+    const bool authored=animator.texture.id!=0&&!animator.frames.empty();
+    const float visualScale=authored?s.scale*ds:ds;
+    DrawEllipse((int)p.x,(int)p.y,26*s.scale*ds,8.5f*ds,{0,0,0,145});
+    if(authored){
+        Color tint=WHITE;
+        if(state==StreetEnemyState::Hit)tint={255,225,225,255};
+        if(state==StreetEnemyState::Defeat)tint={180,180,185,255};
+        animator.Draw(p,visualScale,facing==Facing::Left,tint);
+    }else{
+        Color tint=state==StreetEnemyState::Hit?WHITE:state==StreetEnemyState::Defeat?Color{110,110,115,255}:s.fallbackTint;
+        DrawFallbackEnemy(p,s,type,ds,tint);
+    }
+    if(state!=StreetEnemyState::Defeat){const int width=s.scale>=1.08f?82:68;const int x=(int)(p.x-width*.5f),y=(int)(p.y-s.bodyHeight*ds-11);DrawRectangle(x,y,width,6,{8,9,11,210});DrawRectangle(x,y,(int)(width*((float)hp/maxHp)),6,ThreatColor(type));}
+}
 }
