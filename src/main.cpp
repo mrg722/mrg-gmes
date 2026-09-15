@@ -1,6 +1,6 @@
 #include "raylib.h"
+#include "game/ProductionGame.h"
 #include "core/ApplicationState.h"
-#include "game/GameManager.h"
 #include "rendering/AssetManager.h"
 
 int main() {
@@ -13,7 +13,7 @@ int main() {
 
     district_fury::AssetManager::Get().LoadAll();
 
-    district_fury::GameManager game;
+    district_fury::ProductionGame game;
     game.Init();
 
     district_fury::core::ApplicationState state = district_fury::core::ApplicationState::Running;
@@ -23,8 +23,7 @@ int main() {
             continue;
         }
 
-        const float dt = GetFrameTime();
-        game.Update(dt);
+        game.Update(GetFrameTime());
 
         BeginDrawing();
         ClearBackground({8, 11, 11, 255});
