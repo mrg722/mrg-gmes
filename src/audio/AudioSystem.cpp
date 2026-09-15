@@ -1,8 +1,6 @@
 #include "audio/AudioSystem.h"
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
-#include <vector>
 
 namespace district_fury {
 namespace {
@@ -45,7 +43,9 @@ void AudioSystem::Init() {
 
 void AudioSystem::BuildSound(Sfx sfx, float frequency, float duration, float volume, bool noise) {
     const int frames = std::max(1, static_cast<int>(duration * kSampleRate));
-    auto* data = new float[static_cast<std::size_t>(frames)];
+    auto* data = static_cast<float*>(MemAlloc(static_cast<unsigned int>(frames * sizeof(float))));
+    if (!data) return;
+
     const std::size_t total = static_cast<std::size_t>(frames);
     for (std::size_t i = 0; i < total; ++i) {
         const float t = static_cast<float>(i) / static_cast<float>(kSampleRate);
