@@ -133,13 +133,12 @@ public:
                 frame.source.height
             };
 
-            // Los pivotes de SpriteFrame se almacenan en coordenadas de la celda
-            // original de 128x128. Al recortar source hay que trasladarlos al origen
-            // del recorte; al voltear, el eje X también debe reflejarse.
-            const float pivotXInCrop = frame.pivotX - frame.source.x;
-            const float pivotYInCrop = frame.pivotY - frame.source.y;
-            const float drawPivotX = flipX ? width - pivotXInCrop * scale : pivotXInCrop * scale;
-            const float drawPivotY = pivotYInCrop * scale;
+            // SpriteFrame ya almacena el pivote relativo al recorte. Al invertir
+            // horizontalmente solo hay que reflejar la distancia al borde izquierdo.
+            const float drawPivotX = flipX
+                ? width - frame.pivotX * scale
+                : frame.pivotX * scale;
+            const float drawPivotY = frame.pivotY * scale;
 
             const Rectangle dest = {
                 feetPosition.x - drawPivotX,
