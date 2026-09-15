@@ -4,12 +4,13 @@ import struct
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    "assets/characters/rayden_clean.png": (384, 384),
-    "assets/enemies/punk_clean.png": (512, 384),
-    "assets/enemies/charger_clean.png": (512, 384),
-    "assets/enemies/brute_clean.png": (512, 384),
-    "assets/enemies/enforcer_clean.png": (512, 384),
-    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720),
+    "assets/characters/rayden_clean.png": (384, 384, (6,)),
+    "assets/enemies/punk_clean.png": (512, 384, (6,)),
+    "assets/enemies/charger_clean.png": (512, 384, (6,)),
+    "assets/enemies/brute_clean.png": (512, 384, (6,)),
+    "assets/enemies/enforcer_clean.png": (512, 384, (6,)),
+    # The authored cinematic background is intentionally RGB: it has no transparency requirement.
+    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (2, 6)),
 }
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -26,7 +27,7 @@ def png_info(path: Path):
 def main():
     manifest = json.loads((ROOT / "data" / "sprite_manifest.json").read_text(encoding="utf-8"))
     missing = []
-    for rel, (w, h) in EXPECTED.items():
+    for rel, (w, h, color_types) in EXPECTED.items():
         p = ROOT / rel
         if not p.is_file():
             missing.append(rel)
@@ -34,7 +35,7 @@ def main():
         width, height, depth, color_type = png_info(p)
         assert (width, height) == (w, h), f"{rel}: got {width}x{height}, expected {w}x{h}"
         assert depth == 8, f"{rel}: expected 8-bit channels"
-        assert color_type == 6, f"{rel}: expected RGBA PNG (color type 6)"
+        assert color_type in color_types, f"{rel}: unexpected PNG color type {color_type}; expected one of {color_types}"
     for name, atlas in manifest["atlases"].items():
         assert "path" in atlas, f"manifest atlas missing path: {name}"
         assert atlas["path"].endswith(".png"), f"{name}: clean runtime atlas must be PNG"
@@ -44,7 +45,7 @@ def main():
             print(f"  - {rel}")
         print("The runtime keeps its procedural fallback; the distributable Art Pack supplies the authored files.")
     else:
-        print(f"OK: {len(EXPECTED)} RGBA runtime assets + manifest validated")
+        print("OK: authored runtime assets + manifest validated")
 
 
 if __name__ == "__main__":
