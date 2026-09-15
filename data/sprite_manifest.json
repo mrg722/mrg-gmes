@@ -16,7 +16,7 @@
   },
   "clips": {
     "rayden": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[4,5,6,7],"fps":11},"punch":{"frames":[8,9],"fps":12,"loop":false},"kick":{"frames":[10,11],"fps":12,"loop":false},"energy":{"frames":[12],"fps":14,"loop":false},"hit":{"frames":[13],"fps":9,"loop":false},"dash":{"frames":[14],"fps":18,"loop":false},"defeat":{"frames":[15],"fps":5,"loop":false}},
-    "enemy_default": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[4,5,6,7],"fps":10},"attack":{"frames":[8,9],"fps":11,"loop":false},"defeat":{"frames":[10,11],"fps":5,"loop":false}}
+    "enemy_default": {"idle":{"frames":[0,1,2,3],"fps":7},"walk":{"frames":[0,1,2,3],"fps":10},"attack":{"frames":[4,5,6,7],"fps":11,"loop":false},"hit":{"frames":[8,9],"fps":10,"loop":false},"defeat":{"frames":[10,11],"fps":5,"loop":false}}
   },
-  "notes": "DF-008 extends the authored 4x3 enemy atlas language with palette-derived pixel variants for the Old Steel Yard Deep Line. Runtime falls back safely when optional binary art is not installed."
+  "notes": "Rayden uses a 4x4 96x96 atlas. Authored enemy atlases are 512x384 4x3 sheets with 128x128 cells: row 0 is the safe locomotion/idle cycle, row 1 is attack, and row 2 contains hit/knockdown/death poses."
 }
