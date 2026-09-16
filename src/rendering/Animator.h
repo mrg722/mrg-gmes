@@ -80,9 +80,11 @@ public:
         if (!isPlaying || isFinished) return;
         timer += std::max(0.0f, dt);
         while (true) {
-            const float duration = frames.empty()
+            const float duration = !currentClip.frames.empty()
                 ? currentClip.frameDuration
-                : std::max(0.016f, frames[static_cast<std::size_t>(currentFrame)].duration);
+                : (frames.empty()
+                    ? currentClip.frameDuration
+                    : std::max(0.016f, frames[static_cast<std::size_t>(currentFrame)].duration));
             if (timer < duration) break;
             timer -= duration;
             const bool explicitSequence = !currentClip.frames.empty();
@@ -133,8 +135,6 @@ public:
                 frame.source.height
             };
 
-            // SpriteFrame ya almacena el pivote relativo al recorte. Al invertir
-            // horizontalmente solo hay que reflejar la distancia al borde izquierdo.
             const float drawPivotX = flipX
                 ? width - frame.pivotX * scale
                 : frame.pivotX * scale;
