@@ -29,6 +29,7 @@ add_library(district_fury_core
     src/game/Stage2Game.cpp
     src/game/Stage3Game.cpp
     src/game/VSMode.cpp
+    src/game/combat/AttackDatabase.cpp
     src/rendering/AssetManager.cpp
 )
 target_include_directories(district_fury_core PUBLIC src)
@@ -46,4 +47,8 @@ if(BUILD_TESTING)
     add_executable(combat_smoke_tests tests/CombatSmokeTests.cpp)
     target_link_libraries(combat_smoke_tests PRIVATE district_fury_core)
     add_test(NAME combat_smoke_tests COMMAND combat_smoke_tests)
+
+    add_executable(attack_database_tests tests/AttackDatabaseTests.cpp)
+    target_link_libraries(attack_database_tests PRIVATE district_fury_core)
+    add_test(NAME attack_database_tests COMMAND attack_database_tests)
 endif()
