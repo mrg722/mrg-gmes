@@ -22,6 +22,8 @@ class Stage1StoryGame {
 public:
     Stage1StoryGame();
     void Init(); void Update(float dt); void Draw() const;
+    bool IsMenu() const { return flow == StoryFlow::Menu; }
+    void ReturnToMenu() { ResetRun(); flow = StoryFlow::Menu; }
 private:
     Player player; std::vector<StreetEnemy> enemies; std::vector<StoryProjectile> projectiles; std::vector<StoryParticle> particles;
     StoryFlow flow{StoryFlow::Menu}; StoryBoss boss;

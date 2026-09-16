@@ -1,15 +1,11 @@
 from pathlib import Path
 import json
 import struct
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
     "assets/characters/rayden_clean.png": (384, 384, (6,)),
-    "assets/enemies/punk_clean.png": (512, 384, (6,)),
-    "assets/enemies/charger_clean.png": (512, 384, (6,)),
-    "assets/enemies/brute_clean.png": (512, 384, (6,)),
-    "assets/enemies/enforcer_clean.png": (512, 384, (6,)),
-    # The authored cinematic background is intentionally RGB: it has no transparency requirement.
     "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (2, 6)),
 }
 ENEMY_ATLAS_NAMES = (
@@ -28,11 +24,82 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 def png_info(path: Path):
     raw = path.read_bytes()
-    assert raw.startswith(PNG_SIGNATURE), f"{path}: not a PNG"
+    assert raw.startswith(PNG_SIGNATURE), f"{path}: no es un PNG"
     length = struct.unpack(">I", raw[8:12])[0]
-    assert raw[12:16] == b"IHDR" and length >= 13, f"{path}: missing IHDR"
+    assert raw[12:16] == b"IHDR" and length >= 13, f"{path}: falta IHDR"
     width, height, bit_depth, color_type = struct.unpack(">IIBB", raw[16:26])
     return width, height, bit_depth, color_type
+
+
+def read_rgba(path: Path):
+    raw = path.read_bytes()
+    pos = 8
+    width = height = bit_depth = color_type = None
+    idat = bytearray()
+    while pos < len(raw):
+        length = struct.unpack(">I", raw[pos:pos + 4])[0]
+        kind = raw[pos + 4:pos + 8]
+        data = raw[pos + 8:pos + 8 + length]
+        pos += 12 + length
+        if kind == b"IHDR":
+            width, height, bit_depth, color_type, _, _, _ = struct.unpack(">IIBBBBB", data)
+        elif kind == b"IDAT":
+            idat.extend(data)
+        elif kind == b"IEND":
+            break
+    assert bit_depth == 8 and color_type == 6, f"{path}: para medir alpha se requiere RGBA PNG 8-bit"
+    decoded = zlib.decompress(bytes(idat))
+    stride = width * 4
+    rows = []
+    prev = bytearray(stride)
+    offset = 0
+    for _ in range(height):
+        filter_type = decoded[offset]
+        offset += 1
+        row = bytearray(decoded[offset:offset + stride])
+        offset += stride
+        for i in range(stride):
+            left = row[i - 4] if i >= 4 else 0
+            up = prev[i]
+            up_left = prev[i - 4] if i >= 4 else 0
+            if filter_type == 1:
+                row[i] = (row[i] + left) & 255
+            elif filter_type == 2:
+                row[i] = (row[i] + up) & 255
+            elif filter_type == 3:
+                row[i] = (row[i] + ((left + up) // 2)) & 255
+            elif filter_type == 4:
+                p = left + up - up_left
+                pa = abs(p - left)
+                pb = abs(p - up)
+                pc = abs(p - up_left)
+                pr = left if pa <= pb and pa <= pc else up if pb <= pc else up_left
+                row[i] = (row[i] + pr) & 255
+            elif filter_type != 0:
+                raise AssertionError(f"{path}: filtro PNG no soportado: {filter_type}")
+        rows.append(row)
+        prev = row
+    return width, height, rows
+
+
+def validate_enemy_atlas(path: Path):
+    width, height, rows = read_rgba(path)
+    assert (width, height) == (512, 384), f"{path}: se esperaba 512x384, llegó {width}x{height}"
+    for frame in range(12):
+        x0 = (frame % 4) * 128
+        y0 = (frame // 4) * 128
+        min_x, min_y = 128, 128
+        max_x, max_y = -1, -1
+        for y in range(128):
+            row = rows[y0 + y]
+            for x in range(128):
+                if row[(x0 + x) * 4 + 3] >= 8:
+                    min_x = min(min_x, x)
+                    min_y = min(min_y, y)
+                    max_x = max(max_x, x)
+                    max_y = max(max_y, y)
+        assert max_x >= min_x and max_y >= min_y, f"{path}: frame {frame} está vacío"
+        assert 0 <= min_x <= max_x < 128 and 0 <= min_y <= max_y < 128, f"{path}: bounds inválidos en frame {frame}"
 
 
 def main():
@@ -42,37 +109,35 @@ def main():
 
     for name in ENEMY_ATLAS_NAMES:
         atlas = atlases[name]
-        assert atlas["grid"] == [4, 3], f"{name}: enemy atlas must be 4x3"
-        assert atlas["cell"] == [128, 128], f"{name}: enemy cells must be 128x128"
-        assert atlas["pivot"] == [64, 126], f"{name}: enemy pivot must be [64,126]"
+        assert atlas["grid"] == [4, 3], f"{name}: el atlas enemigo debe ser 4x3"
+        assert atlas["cell"] == [128, 128], f"{name}: las celdas deben ser 128x128"
+        assert atlas["path"] == f"assets/enemies/{name}_clean.png", f"{name}: ruta inesperada en manifest"
+        p = ROOT / atlas["path"]
+        assert p.is_file(), f"{p}: falta el atlas enemigo obligatorio"
+        width, height, depth, color_type = png_info(p)
+        assert (width, height) == (512, 384), f"{p}: se esperaba 512x384, llegó {width}x{height}"
+        assert depth == 8, f"{p}: se esperaba profundidad de 8 bits"
+        assert color_type == 6, f"{p}: se esperaba PNG RGBA (color type 6)"
+        validate_enemy_atlas(p)
 
     for clip_name, expected_frames in EXPECTED_ENEMY_CLIPS.items():
         assert clips[clip_name]["frames"] == expected_frames, (
-            f"enemy_default/{clip_name}: got {clips[clip_name]['frames']}, expected {expected_frames}"
+            f"enemy_default/{clip_name}: llegó {clips[clip_name]['frames']}, se esperaba {expected_frames}"
         )
 
-    missing = []
     for rel, (w, h, color_types) in EXPECTED.items():
         p = ROOT / rel
-        if not p.is_file():
-            missing.append(rel)
-            continue
+        assert p.is_file(), f"{rel}: falta el asset obligatorio"
         width, height, depth, color_type = png_info(p)
-        assert (width, height) == (w, h), f"{rel}: got {width}x{height}, expected {w}x{h}"
-        assert depth == 8, f"{rel}: expected 8-bit channels"
-        assert color_type in color_types, f"{rel}: unexpected PNG color type {color_type}; expected one of {color_types}"
+        assert (width, height) == (w, h), f"{rel}: llegó {width}x{height}, se esperaba {w}x{h}"
+        assert depth == 8, f"{rel}: se esperaba profundidad de 8 bits"
+        assert color_type in color_types, f"{rel}: color type {color_type} no permitido"
 
     for name, atlas in atlases.items():
-        assert "path" in atlas, f"manifest atlas missing path: {name}"
-        assert atlas["path"].endswith(".png"), f"{name}: clean runtime atlas must be PNG"
+        assert "path" in atlas, f"manifest: falta path para {name}"
+        assert atlas["path"].endswith(".png"), f"{name}: el asset de runtime debe ser PNG"
 
-    if missing:
-        print("WARN: authored art is not checked into this branch yet:")
-        for rel in missing:
-            print(f"  - {rel}")
-        print("The runtime keeps its procedural fallback; the distributable Art Pack supplies the authored files.")
-    else:
-        print("OK: authored runtime assets + manifest validated")
+    print("OK: los ocho atlas enemigos, sus 12 frames y el manifest fueron validados")
 
 
 if __name__ == "__main__":

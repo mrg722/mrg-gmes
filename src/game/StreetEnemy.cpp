@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace district_fury {
@@ -23,8 +24,6 @@ Stats GetStats(StreetEnemyType type) {
 Color ThreatColor(StreetEnemyType type) { switch(type){case StreetEnemyType::Brute:return {220,140,70,255};case StreetEnemyType::Charger:return {90,155,220,255};case StreetEnemyType::Enforcer:return {235,185,70,255};case StreetEnemyType::ChemicalSoldier:return {70,220,115,255};case StreetEnemyType::UrbanNinja:return {90,210,220,255};case StreetEnemyType::Mutant:return {120,225,75,255};case StreetEnemyType::ArmoredGuard:return {120,165,210,255};default:return {225,65,80,255};} }
 float DepthScale(float y){const float t=std::clamp((y-kLaneMinY)/(kLaneMaxY-kLaneMinY),0.0f,1.0f);return 0.86f+0.26f*t;}
 
-// Every authored enemy has its own texture. Never substitute a different enemy atlas:
-// a visually wrong atlas is worse than the coherent procedural fallback.
 const char* TextureKeyFor(StreetEnemyType type){
     switch(type){
         case StreetEnemyType::Brute:return "brute_clean";
@@ -41,57 +40,74 @@ const char* TextureKeyFor(StreetEnemyType type){
 struct EnemyAnimationLayout { int columns; int rows; int idleStart; int idleEnd; int walkStart; int walkEnd; int attackStart; int attackEnd; int hitFrame; int deathStart; int deathEnd; };
 EnemyAnimationLayout LayoutFor(StreetEnemyType){ return {4,3,0,3,0,3,4,7,8,10,11}; }
 
-// The art packs use fixed 128x128 cells. These bounds were measured from the authored
-// alpha silhouettes. Cropping transparent margins and anchoring to the lower body keeps
-// feet planted while arms/VFX move, preventing the "separated body parts" look caused by
-// treating every frame as a full 128x128 visual rectangle.
-struct FrameBounds { int x; int y; int w; int h; float pivotX; float pivotY; };
-using FrameSet = std::array<FrameBounds,12>;
-
-const FrameSet kPunkFrames = {{
-    {22,6,81,121,63.3f,127.0f},{15,8,81,119,55.7f,127.0f},{19,6,84,121,60.8f,127.0f},{25,5,84,122,66.9f,127.0f},
-    {17,11,89,112,61.3f,123.0f},{12,11,116,112,60.7f,123.0f},{0,9,107,114,59.6f,123.0f},{21,10,89,113,66.0f,123.0f},
-    {17,3,90,107,55.6f,110.0f},{13,35,115,74,59.6f,109.0f},{0,36,128,73,54.2f,109.0f},{0,70,123,40,57.7f,110.0f}
-}};
-const FrameSet kChargerFrames = {{
-    {19,10,91,118,63.7f,128.0f},{20,11,90,117,63.9f,128.0f},{18,10,89,118,60.6f,128.0f},{14,10,93,118,59.8f,128.0f},
-    {10,0,118,128,60.5f,128.0f},{0,0,116,128,33.8f,128.0f},{6,0,122,128,55.8f,128.0f},{0,0,112,128,65.0f,128.0f},
-    {10,0,99,117,67.7f,117.0f},{19,0,109,116,66.2f,116.0f},{0,0,128,117,60.3f,117.0f},{0,0,117,115,54.7f,115.0f}
-}};
-const FrameSet kBruteFrames = {{
-    {26,7,88,121,68.4f,128.0f},{19,10,99,118,69.3f,128.0f},{17,10,96,118,64.1f,128.0f},{16,9,87,119,59.4f,128.0f},
-    {16,0,103,128,65.8f,128.0f},{11,0,117,128,62.7f,128.0f},{0,0,128,128,60.8f,128.0f},{0,0,112,128,61.5f,128.0f},
-    {26,8,96,105,79.0f,113.0f},{24,16,91,97,61.2f,113.0f},{23,42,105,73,66.3f,115.0f},{0,68,121,48,55.7f,116.0f}
-}};
-
-const FrameSet& BoundsFor(StreetEnemyType type){
-    switch(type){
-        case StreetEnemyType::Charger:
-        case StreetEnemyType::UrbanNinja: return kChargerFrames;
-        case StreetEnemyType::Brute:
-        case StreetEnemyType::Enforcer:
-        case StreetEnemyType::ChemicalSoldier:
-        case StreetEnemyType::Mutant:
-        case StreetEnemyType::ArmoredGuard: return kBruteFrames;
-        default:return kPunkFrames;
-    }
-}
-
-std::vector<SpriteFrame> BuildSpriteFrames(StreetEnemyType type){
-    const FrameSet& bounds=BoundsFor(type);
+// Mide cada celda del atlas directamente desde su alpha. Esto evita mantener una
+// tabla de bounds dependiente del enemigo y elimina el riesgo de reutilizar la
+// geometria de otro personaje.
+std::vector<SpriteFrame> BuildSpriteFrames(Texture2D texture){
     std::vector<SpriteFrame> result;
-    result.reserve(bounds.size());
-    for(std::size_t i=0;i<bounds.size();++i){
-        const FrameBounds& b=bounds[i];
+    if(texture.id==0||texture.width!=512||texture.height!=384)return result;
+
+    Image image=LoadImageFromTexture(texture);
+    if(image.data==nullptr)return result;
+    ImageFormat(&image,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    if(image.data==nullptr||image.width!=512||image.height!=384){UnloadImage(image);return result;}
+
+    const Color* pixels=static_cast<const Color*>(image.data);
+    result.reserve(12);
+    for(int frameIndex=0;frameIndex<12;++frameIndex){
+        const int cellX=(frameIndex%4)*128;
+        const int cellY=(frameIndex/4)*128;
+        int minX=128,minY=128,maxX=-1,maxY=-1;
+        std::vector<int> lowerXs;
+        lowerXs.reserve(128*16);
+
+        for(int y=0;y<128;++y){
+            for(int x=0;x<128;++x){
+                const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                if(pixel.a<8)continue;
+                minX=std::min(minX,x);minY=std::min(minY,y);
+                maxX=std::max(maxX,x);maxY=std::max(maxY,y);
+            }
+        }
+        if(maxX<minX||maxY<minY){
+            TraceLog(LOG_WARNING,"Distrito Fury: frame %i del atlas enemigo no contiene pixeles alpha",frameIndex);
+            continue;
+        }
+
+        // El ancla horizontal se calcula con la zona inferior del personaje,
+        // no con toda la silueta. Así un arma, cadena o efecto que sobresalga
+        // durante un ataque no mueve el punto de apoyo de los pies.
+        const int lowerStart=std::max(minY,maxY-15);
+        for(int y=lowerStart;y<=maxY;++y){
+            for(int x=minX;x<=maxX;++x){
+                const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                if(pixel.a>=8)lowerXs.push_back(x);
+            }
+        }
+        if(lowerXs.empty()){
+            for(int y=minY;y<=maxY;++y){
+                for(int x=minX;x<=maxX;++x){
+                    const Color& pixel=pixels[(cellY+y)*image.width+(cellX+x)];
+                    if(pixel.a>=8)lowerXs.push_back(x);
+                }
+            }
+        }
+        std::sort(lowerXs.begin(),lowerXs.end());
+        const float pivotX=static_cast<float>(lowerXs[lowerXs.size()/2]);
+        const float pivotY=static_cast<float>(maxY+1);
+
         SpriteFrame frame;
-        frame.source={(float)((i%4)*128+b.x),(float)((i/4)*128+b.y),(float)b.w,(float)b.h};
-        frame.width=(float)b.w; frame.height=(float)b.h;
-        frame.pivotX=b.pivotX; frame.pivotY=b.pivotY;
-        frame.duration=(i<4)?0.12f:(i<8?0.09f:0.10f);
-        frame.visualBounds={0,0,(float)b.w,(float)b.h};
+        frame.source={(float)(cellX+minX),(float)(cellY+minY),(float)(maxX-minX+1),(float)(maxY-minY+1)};
+        frame.width=(float)(maxX-minX+1);
+        frame.height=(float)(maxY-minY+1);
+        frame.pivotX=pivotX-(float)minX;
+        frame.pivotY=pivotY-(float)minY;
+        frame.duration=(frameIndex<4)?0.12f:(frameIndex<8?0.09f:0.10f);
+        frame.visualBounds={0,0,frame.width,frame.height};
         result.push_back(frame);
     }
-    return result;
+    UnloadImage(image);
+    return result.size()==12?result:std::vector<SpriteFrame>{};
 }
 
 void EnsureAnimator(Animator& a,StreetEnemyType type){
@@ -99,12 +115,17 @@ void EnsureAnimator(Animator& a,StreetEnemyType type){
     const EnemyAnimationLayout layout=LayoutFor(type);
     Texture2D t=AssetManager::Get().GetTexture(TextureKeyFor(type));
     if(t.id!=0 && t.width==512 && t.height==384){
-        a.Init(t,layout.columns,layout.rows,false);
-        a.SetFrames(BuildSpriteFrames(type));
-        a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+        std::vector<SpriteFrame> measured=BuildSpriteFrames(t);
+        if(measured.size()==12){
+            a.Init(t,layout.columns,layout.rows,false);
+            a.SetFrames(std::move(measured));
+            a.Play({layout.idleStart,layout.idleEnd,0.12f,true});
+            return;
+        }
+        TraceLog(LOG_WARNING,"Distrito Fury: atlas enemigo rechazado para %s porque sus 12 frames no pudieron medirse",TextureKeyFor(type));
         return;
     }
-    if(t.id!=0)TraceLog(LOG_WARNING,"District Fury enemy atlas rejected for %s: expected 512x384, got %ix%i",TextureKeyFor(type),t.width,t.height);
+    if(t.id!=0)TraceLog(LOG_WARNING,"Distrito Fury: atlas rechazado para %s; se esperaba 512x384 y llegó %ix%i",TextureKeyFor(type),t.width,t.height);
 }
 void PlayIdle(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.idleStart||animator.currentFrame>layout.idleEnd)animator.Play({layout.idleStart,layout.idleEnd,.12f,true});}
 void PlayWalk(Animator& animator,StreetEnemyType type){const EnemyAnimationLayout layout=LayoutFor(type);if(animator.isFinished||!animator.isPlaying||animator.currentFrame<layout.walkStart||animator.currentFrame>layout.walkEnd)animator.Play({layout.walkStart,layout.walkEnd,.10f,true});}
@@ -169,7 +190,19 @@ bool StreetEnemy::IsDefeated() const{return state==StreetEnemyState::Defeat;}
 CombatBox StreetEnemy::GetHurtbox() const{if(!active||IsDefeated())return{};const Stats s=GetStats(type);return{position.x-s.bodyWidth*.5f,position.y-s.bodyHeight,s.bodyWidth,s.bodyHeight};}
 CombatBox StreetEnemy::GetAttackHitbox() const{if(!AttackIsActive())return{};const float d=facing==Facing::Right?1.f:-1.f;const float w=attackRange*.68f,h=52.f,cx=position.x+d*attackRange*.52f,cy=position.y-66;return{cx-w*.5f,cy-h*.5f,w,h};}
 const char* StreetEnemy::GetTypeName() const{switch(type){case StreetEnemyType::Brute:return "BRUTE";case StreetEnemyType::Charger:return "CHARGER";case StreetEnemyType::Enforcer:return "ENFORCER";case StreetEnemyType::ChemicalSoldier:return "CHEMICAL";case StreetEnemyType::UrbanNinja:return "URBAN NINJA";case StreetEnemyType::Mutant:return "MUTANT";case StreetEnemyType::ArmoredGuard:return "ARMORED";default:return "PUNK";}}
-void StreetEnemy::TakeDamage(int damage,Vector3D knockback){if(!active||state==StreetEnemyState::Defeat)return;hp=std::max(0,hp-damage);velocity=knockback;const EnemyAnimationLayout layout=LayoutFor(type);if(hp==0){state=StreetEnemyState::Defeat;stateTimer=.85f;if(animator.texture.id!=0)animator.Play({layout.deathStart,layout.deathEnd,.14f,false});else{animator.isFinished=true;animator.isPlaying=false;}}else{state=StreetEnemyState::Hit;stateTimer=.30f;if(animator.texture.id!=0)animator.Play({layout.hitFrame,layout.hitFrame,.09f,false});}}
+void StreetEnemy::TakeDamage(int damage,Vector3D knockback){
+    if(!active||state==StreetEnemyState::Defeat)return;
+    hp=std::max(0,hp-damage);velocity=knockback;
+    const EnemyAnimationLayout layout=LayoutFor(type);
+    if(hp==0){
+        state=StreetEnemyState::Defeat;stateTimer=.85f;
+        if(animator.texture.id!=0)animator.Play({layout.deathStart,layout.deathEnd,.14f,false});
+        else{animator.isFinished=true;animator.isPlaying=false;}
+    }else{
+        state=StreetEnemyState::Hit;stateTimer=.30f;
+        if(animator.texture.id!=0)animator.Play({layout.hitFrame,layout.hitFrame,.09f,false,{8,9}});
+    }
+}
 void StreetEnemy::Draw() const{
     if(!active)return;
     const Stats s=GetStats(type);const Vector2 p=position.ToScreen();const float ds=DepthScale(position.y);
