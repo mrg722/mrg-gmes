@@ -42,6 +42,24 @@ El validador de assets exige los ocho atlas enemigos, verifica sus dimensiones, 
 
 > Los cuatro atlas nuevos deben ser los PNG originales transparentes del paquete de arte. Las imágenes de referencia compuestas no se consideran sustituto del asset original para una validación final de calidad.
 
+## Modo VS / Prueba
+
+Desde el menú principal se puede pulsar **V** para abrir un laboratorio de combate aislado. Permite seleccionar:
+
+- Stage 1, Stage 2 o Stage 3.
+- El escenario de prueba disponible dentro de cada Stage.
+- Entre 1 y 4 enemigos simultáneos.
+- El tipo independiente de cada enemigo entre los ocho `StreetEnemyType`.
+
+El modo reutiliza `Player`, `StreetEnemy`, `AssetManager` y el sistema de entrada de raylib para que la comprobación de sprites y combate se haga sobre los mismos recursos de runtime. El objetivo es poder revisar rápidamente escala, pivote, animaciones, hitbox/hurtbox y carga de atlas sin recorrer toda la campaña.
+
+### Controles del Modo VS
+- **↑ / ↓:** cambiar campo.
+- **← / →:** cambiar valor.
+- **ENTER / J:** iniciar la prueba.
+- **R:** reiniciar la prueba actual.
+- **ESC:** volver a la configuración; desde la configuración, volver al menú principal.
+
 ## Controles de PC
 - WASD: movimiento
 - J: punch
@@ -53,6 +71,7 @@ El validador de assets exige los ocho atlas enemigos, verifica sus dimensiones, 
 - F1: Stage 1
 - F2: Stage 2
 - F3: Stage 3
+- V: Modo VS / Prueba desde el menú principal
 
 ## Arquitectura
 ```text
@@ -63,6 +82,7 @@ src/audio/      eventos y audio procedural
 assets/         recursos visuales
 data/           datos configurables
 tests/          pruebas
+docs/           documentación
 ```
 
 GitHub es la fuente central de verdad. Los cambios grandes se desarrollan en ramas y se integran mediante Pull Requests después de CI.
