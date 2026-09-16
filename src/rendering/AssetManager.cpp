@@ -47,7 +47,7 @@ Texture2D LoadEnemyTexture(const char* key,const std::vector<std::string>& candi
     while(!queue.empty()){
         const int idx=queue.front();queue.pop();
         const int x=idx%w,y=idx/w;
-        ImageDrawPixel(image,x,y,{0,0,0,0});
+        ImageDrawPixel(&image,x,y,{0,0,0,0});
         for(int i=0;i<4;++i){
             const int nx=x+dx[i],ny=y+dy[i];
             if(nx>=0&&nx<w&&ny>=0&&ny<h)enqueue(nx,ny);
@@ -63,7 +63,7 @@ Texture2D LoadEnemyTexture(const char* key,const std::vector<std::string>& candi
                 const int nx=x+dx[i],ny=y+dy[i];
                 if(nx>=0&&nx<w&&ny>=0&&ny<h&&GetImageColor(image,nx,ny).a==0){touchesTransparent=true;break;}
             }
-            if(touchesTransparent)ImageDrawPixel(image,x,y,{c.r,c.g,c.b,0});
+            if(touchesTransparent)ImageDrawPixel(&image,x,y,{c.r,c.g,c.b,0});
         }
     }
 
@@ -86,7 +86,7 @@ void AssetManager::LoadAll(){
     textures["chemical_soldier_clean"]=LoadEnemyTexture("chemical_soldier_clean",{"assets/enemies/chemical_soldier_clean.png","../assets/enemies/chemical_soldier_clean.png","../../assets/enemies/chemical_soldier_clean.png"});
     textures["urban_ninja_clean"]=LoadEnemyTexture("urban_ninja_clean",{"assets/enemies/urban_ninja_clean.png","../assets/enemies/urban_ninja_clean.png","../../assets/enemies/urban_ninja_clean.png"});
     textures["mutant_clean"]=LoadEnemyTexture("mutant_clean",{"assets/enemies/mutant_clean.png","../assets/enemies/mutant_clean.png","../../assets/enemies/mutant_clean.png"});
-    textures["armored_guard_clean"]=LoadEnemyTexture("armored_guard_clean",{"assets/enemies/armored_guard_clean.png","../assets/enemies/armored_guard_clean.png","../../assets/enemies/armored_guard_clean.png"});
+    textures["armored_guard_clean"]=LoadEnemyTexture("armored_guard_clean",{"assets/enemies/armored_guard_clean.png","../assets/enemies/armored_guard_clean.png","../../assets/enemies/armored_guard_clean"});
 }
 void AssetManager::UnloadAll(){for(auto&pair:textures)if(pair.second.id!=0)UnloadTexture(pair.second);textures.clear();}
 Texture2D AssetManager::GetTexture(const std::string&name){const auto it=textures.find(name);return it!=textures.end()?it->second:Texture2D{0};}
