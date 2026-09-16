@@ -5,12 +5,12 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    "assets/characters/rayden_clean.png": (384, 384, (6,)),
-    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (2, 3, 6)),
+    "assets/characters/rayden_clean.png": (384, 384, (8, 6)),
+    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (8, 2),),
 }
 OPTIONAL_SCENARIOS = {
-    "assets/backgrounds/mercado_antiguo_clean.png": (256, 144, (2, 3, 6)),
-    "assets/backgrounds/zona_quimica_clean.png": (256, 144, (2, 3, 6)),
+    "assets/backgrounds/mercado_antiguo_clean.png": (256, 144),
+    "assets/backgrounds/zona_quimica_clean.png": (256, 144),
 }
 ENEMY_ATLAS_NAMES = ("punk", "charger", "brute", "enforcer", "chemical_soldier", "urban_ninja", "mutant", "armored_guard")
 EXPECTED_ENEMY_CLIPS = {"idle": [0,1,2,3], "walk": [0,1,2,3], "attack": [4,5,6,7], "hit": [8,9], "defeat": [10,11]}
@@ -62,11 +62,11 @@ def main():
         p=ROOT/atlas["path"]; assert p.is_file(), f"{p}: falta el atlas enemigo obligatorio"; width,height,depth,color_type=png_info(p); assert (width,height)==(512,384); assert depth==8 and color_type==6; validate_enemy_atlas(p)
     for clip_name,frames in EXPECTED_ENEMY_CLIPS.items(): assert clips[clip_name]["frames"]==frames
     for rel,(w,h,types) in EXPECTED.items():
-        p=ROOT/rel; assert p.is_file(), f"{rel}: falta el asset obligatorio"; width,height,depth,color_type=png_info(p); assert (width,height)==(w,h); assert depth==8; assert color_type in types
-    for rel,(w,h,types) in OPTIONAL_SCENARIOS.items():
+        p=ROOT/rel; assert p.is_file(), f"{rel}: falta el asset obligatorio"; width,height,depth,color_type=png_info(p); assert (width,height)==(w,h); assert depth in types; assert (color_type==6 if rel.endswith("rayden_clean.png") else color_type==2)
+    for rel,(w,h) in OPTIONAL_SCENARIOS.items():
         p=ROOT/rel
         if p.is_file():
-            width,height,depth,color_type=png_info(p); assert (width,height)==(w,h), f"{rel}: llegó {width}x{height}, se esperaba {w}x{h}"; assert depth==8; assert color_type in types
+            width,height,depth,color_type=png_info(p); assert (width,height)==(w,h), f"{rel}: llegó {width}x{height}, se esperaba {w}x{h}"; assert depth in (4,8), f"{rel}: profundidad PNG no soportada para fondo pixel: {depth}"; assert color_type in (3,6), f"{rel}: tipo de color PNG no soportado para fondo pixel: {color_type}"
     for name,atlas in atlases.items(): assert "path" in atlas and atlas["path"].endswith(".png")
     print("OK: atlas enemigos, manifest y assets visuales presentes fueron validados")
 
