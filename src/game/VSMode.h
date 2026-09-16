@@ -8,6 +8,15 @@ namespace district_fury {
 
 enum class VSFlow { Select, Fight };
 
+struct VSEnergyProjectile {
+    Vector3D position;
+    float velocity;
+    float life;
+    float radius;
+    int damage;
+    bool active;
+};
+
 class VSMode {
 public:
     VSMode();
@@ -33,11 +42,14 @@ private:
         StreetEnemyType::Enforcer
     };
     std::vector<StreetEnemy> enemies;
+    std::vector<VSEnergyProjectile> projectiles;
     float shake{0.0f};
 
     void ResetFight();
     void StartFight();
     void UpdateFight(float dt);
+    void SpawnEnergyProjectile();
+    void UpdateProjectiles(float dt);
     void DrawSelection() const;
     void DrawFight() const;
     void DrawBackground() const;
