@@ -7,6 +7,32 @@
 #include "core/ApplicationState.h"
 #include "rendering/AssetManager.h"
 
+namespace {
+void DrawMenuEnhancement() {
+    DrawRectangle(322, 272, 636, 290, {4, 8, 12, 165});
+    DrawRectangleLines(322, 272, 636, 290, {70, 105, 125, 120});
+    DrawRectangle(343, 294, 594, 1, {90, 145, 170, 95});
+    DrawText("MODO HISTORIA", 368, 316, 18, {130, 205, 225, 220});
+    DrawRectangle(368, 345, 260, 44, {255, 205, 80, 42});
+    DrawRectangleLines(368, 345, 260, 44, {255, 205, 80, 150});
+    DrawText("ENTER / J", 389, 357, 16, {255, 220, 110, 255});
+    DrawText("NUEVA PARTIDA", 495, 357, 16, WHITE);
+    DrawRectangleLines(368, 399, 260, 44, {95, 175, 205, 135});
+    DrawText("V", 389, 411, 18, {255, 205, 85, 255});
+    DrawText("MODO VS / PRUEBA", 495, 411, 16, {205, 225, 235, 255});
+    DrawRectangleLines(368, 453, 260, 44, {95, 175, 205, 110});
+    DrawText("C", 389, 465, 18, {120, 215, 240, 255});
+    DrawText("CONTROLES", 495, 465, 16, {205, 225, 235, 255});
+    DrawText("↑ / ↓", 666, 357, 15, {180, 200, 210, 235});
+    DrawText("DIFICULTAD", 746, 357, 15, {180, 200, 210, 235});
+    DrawText("F1  S1     F2  S2     F3  S3", 665, 414, 13, {155, 185, 200, 220});
+    DrawText("ESC", 665, 468, 14, {155, 185, 200, 220});
+    DrawText("salir del juego", 710, 468, 14, {155, 185, 200, 220});
+    DrawRectangle(343, 520, 594, 1, {90, 145, 170, 80});
+    DrawText("LABORATORIO DE COMBATE  //  SPRITES + HITBOX + ESCENARIOS", 366, 532, 12, {120, 155, 170, 210});
+}
+}
+
 int main() {
     constexpr int windowWidth = 1280;
     constexpr int windowHeight = 720;
@@ -65,10 +91,7 @@ int main() {
             vsMode.Draw();
         } else if (activeStage == 1) {
             stage1.Draw();
-            if (stage1.IsMenu()) {
-                DrawRectangle(470, 560, 340, 38, {4, 8, 12, 225});
-                DrawText("V: MODO VS / PRUEBA", 505, 570, 17, {255, 205, 85, 255});
-            }
+            if (stage1.IsMenu()) DrawMenuEnhancement();
         } else if (activeStage == 2) {
             stage2.Draw();
         } else {
