@@ -3,62 +3,59 @@
 Videojuego 2D beat'em up / brawler original desarrollado en C++17 y raylib.
 
 ## Estado actual
-La campaña jugable ya contiene tres etapas conectadas a través del ejecutable principal:
+La campaña jugable contiene tres etapas conectadas mediante el ejecutable principal:
 
 - **Stage 1 — Slum District:** cuatro escenarios narrativos, gatekeepers y Brakk "The Chain".
 - **Stage 2 — Old Steel Yard:** Deep Line, roster químico/industrial y Grinder.
 - **Stage 3 — Astra Tower:** Public Atrium, Research Floor, Executive Core y Titan-X.
 
-La base técnica incluye un mundo horizontal, cámara 2D, combate con hitboxes/hurtboxes, combos, proyectiles, hitstop, partículas, dificultad y flujos de victoria/derrota/pausa.
-
-## Jugabilidad actual
-- Rayden Cruz con idle/walk/punch/kick/energy/dash/rage.
-- Movimiento WASD en horizontal y profundidad.
-- Cámara 2D desplazable con límites del escenario.
-- Stage 1: Punk, Brute, Charger, Enforcer y Brakk.
-- Stage 2/3: Chemical Soldier, Urban Ninja, Mutant, Armored Guard y bosses Grinder/Titan-X.
-- Hitboxes/hurtboxes independientes de la posición central.
-- Hitstop, screenshake, partículas, proyectiles, combo, score y rangos D→SSS.
-- Bosses con fases y defensa/guard para evitar que sean simples esponjas de HP.
-- Dificultad Easy/Normal/Hard en los story controllers.
-- Build reproducible con CMake + raylib y pruebas automatizadas.
+La base técnica incluye mundo horizontal, cámara 2D, combate con hitboxes/hurtboxes, combos, proyectiles, hitstop, partículas, dificultad y flujos de victoria/derrota/pausa.
 
 ## Integridad de sprites enemigos — DF-011.4
 
-La rama de integridad de sprites usa exclusivamente el atlas correspondiente a cada tipo de enemigo. Chemical Soldier, Urban Ninja, Mutant y Armored Guard no pueden sustituirse por el atlas de otro enemigo.
+Cada `StreetEnemyType` utiliza su propio atlas. Los ocho atlas enemigos son PNG RGBA de **512x384**, organizados en **4 columnas x 3 filas de 128x128**. Los bounds alfa se miden desde cada atlas y el pivote se calcula en la zona inferior para mantener los pies anclados durante animaciones y ataques.
 
-Todos los atlas enemigos deben ser PNG RGBA de **512x384**, organizados como **4 columnas x 3 filas de 128x128**. La aplicación rechaza un atlas con dimensiones inesperadas y utiliza un fallback procedural coherente si el arte no está disponible o no puede medirse.
+La secuencia común es **0–3 idle**, **4–7 ataque**, **8–9 impacto** y **10–11 derrota**. El filtro de textura para los personajes es `TEXTURE_FILTER_POINT` para evitar interpolación borrosa.
 
-Los bounds alfa de los 12 frames se miden desde la propia textura cuando se carga. El recorte se conserva junto con un pivote calculado en la zona inferior del personaje para mantener los pies anclados aunque durante un ataque sobresalgan armas o efectos. Al invertir horizontalmente el personaje, el pivote también se refleja correctamente.
+## Modo VS / Laboratorio
 
-La secuencia común de los atlas enemigos es:
-
-- **0–3:** idle / locomoción
-- **4–7:** ataque
-- **8–9:** impacto
-- **10–11:** derrota
-
-El validador de assets exige los ocho atlas enemigos, verifica sus dimensiones, formato RGBA y que las 12 celdas contengan arte. El CI ejecuta además la compilación Release y las pruebas existentes.
-
-> Los cuatro atlas nuevos deben ser los PNG originales transparentes del paquete de arte. Las imágenes de referencia compuestas no se consideran sustituto del asset original para una validación final de calidad.
-
-## Modo VS / Prueba
-
-Desde el menú principal se puede pulsar **V** para abrir un laboratorio de combate aislado. Permite seleccionar:
+Desde el menú principal se pulsa **V** para entrar a un laboratorio aislado. Permite seleccionar:
 
 - Stage 1, Stage 2 o Stage 3.
-- El escenario de prueba disponible dentro de cada Stage.
+- El escenario disponible de cada Stage.
 - Entre 1 y 4 enemigos simultáneos.
 - El tipo independiente de cada enemigo entre los ocho `StreetEnemyType`.
 
-El modo reutiliza `Player`, `StreetEnemy`, `AssetManager` y el sistema de entrada de raylib para que la comprobación de sprites y combate se haga sobre los mismos recursos de runtime. El objetivo es poder revisar rápidamente escala, pivote, animaciones, hitbox/hurtbox y carga de atlas sin recorrer toda la campaña.
+El laboratorio utiliza las mismas clases de runtime (`Player`, `StreetEnemy` y `AssetManager`) para que escala, animaciones, pivotes, hitboxes, hurtboxes y barras se comprueben sobre el juego real.
 
 ### Controles del Modo VS
 - **↑ / ↓:** cambiar campo.
 - **← / →:** cambiar valor.
-- **ENTER / J:** iniciar la prueba.
-- **R:** reiniciar la prueba actual.
-- **ESC:** volver a la configuración; desde la configuración, volver al menú principal.
+- **ENTER / J:** iniciar.
+- **R:** reiniciar.
+- **ESC:** volver a configuración y luego al menú.
+
+## DF-012 — Pase de integración visual
+
+Esta rama añade el pase visual solicitado sin crear una segunda arquitectura de juego:
+
+1. **Rayden:** escala visual moderada del atlas normal para que quede ligeramente por encima de la referencia de los enemigos sin sobredimensionarlo.
+2. **Menú principal:** panel más limpio, jerarquía visual y acceso explícito al laboratorio VS.
+3. **HUD del laboratorio:** panel de Rayden con retrato, VIDA, SP, FURIA y ESCUDO; además, cada enemigo muestra nombre y barra de vida.
+4. **Mercado Antiguo:** fondo 2D pixelado independiente para el escenario narrativo de la Línea del Canal.
+5. **Zona Química:** fondo 2D pixelado independiente para el escenario químico asociado a Old Steel Yard.
+6. **Carga de fondos:** los dos assets nuevos se cargan como recursos opcionales con filtro punto. Esto evita que una copia local anterior del proyecto falle por no haber recibido todavía el paquete visual.
+7. **Validación:** el validador mantiene obligatorios los atlas de combate y valida dimensiones/formato de los nuevos fondos cuando están presentes.
+
+### Assets nuevos
+Copiar desde el paquete de esta rama:
+
+```text
+assets/backgrounds/mercado_antiguo_clean.png
+assets/backgrounds/zona_quimica_clean.png
+```
+
+Los archivos de runtime están preparados a **256x144** para escalar exactamente 5x a 1280x720 con `TEXTURE_FILTER_POINT`. No contienen personajes ni texto de menú: son fondos utilizables por el motor.
 
 ## Controles de PC
 - WASD: movimiento
@@ -71,7 +68,7 @@ El modo reutiliza `Player`, `StreetEnemy`, `AssetManager` y el sistema de entrad
 - F1: Stage 1
 - F2: Stage 2
 - F3: Stage 3
-- V: Modo VS / Prueba desde el menú principal
+- V: Modo VS / Laboratorio desde el menú principal
 
 ## Arquitectura
 ```text
