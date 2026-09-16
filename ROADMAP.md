@@ -59,6 +59,20 @@
 - Optimización y QA.
 - Builds reproducibles Windows/Linux.
 
+## DF-013 — Core Experience / Campaign 1.0 🚧
+- Gameplay Core compartido para Player, combate, proyectiles, VFX y estados.
+- Attack Data centralizado para evitar parámetros duplicados por stage.
+- IA diferenciada por arquetipo y FSM reutilizable.
+- Sistema de eventos de escenario: oleadas, emboscadas, NPC, diálogo, hazards, destructibles, pickups, checkpoints y boss triggers.
+- Flujo de campaña unificado y Stage Select.
+- Progresión real con XP, coins, gems, level y upgrades funcionales.
+- SaveData central con desbloqueos, mejoras, mejores resultados y configuración.
+- Boss Core común conservando la identidad de Brakk, Grinder y Titan-X.
+- UI 2.0, tutorial integrado, narrativa conectada y transiciones.
+- Auditoría de AudioSystem y feedback audiovisual.
+- Compatibilidad obligatoria con Stage 1, Stage 2, Stage 3 y VS.
+- Tests ampliados y CI verde como criterio de integración.
+
 ## Posterior
 - WebAssembly.
 - Android con joystick y botones táctiles.
