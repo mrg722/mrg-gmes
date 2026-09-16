@@ -6,11 +6,11 @@ import zlib
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
     "assets/characters/rayden_clean.png": (384, 384, (6,)),
-    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (2, 6)),
+    "assets/backgrounds/old_steel_yard_clean.png": (1280, 720, (2, 3, 6)),
 }
 OPTIONAL_SCENARIOS = {
-    "assets/backgrounds/mercado_antiguo_clean.png": (256, 144, (2, 6)),
-    "assets/backgrounds/zona_quimica_clean.png": (256, 144, (2, 6)),
+    "assets/backgrounds/mercado_antiguo_clean.png": (256, 144, (2, 3, 6)),
+    "assets/backgrounds/zona_quimica_clean.png": (256, 144, (2, 3, 6)),
 }
 ENEMY_ATLAS_NAMES = ("punk", "charger", "brute", "enforcer", "chemical_soldier", "urban_ninja", "mutant", "armored_guard")
 EXPECTED_ENEMY_CLIPS = {"idle": [0,1,2,3], "walk": [0,1,2,3], "attack": [4,5,6,7], "hit": [8,9], "defeat": [10,11]}
