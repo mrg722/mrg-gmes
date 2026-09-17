@@ -39,9 +39,6 @@ add_library(district_fury_core
     src/game/enemies/EnemyBrain.cpp
     src/game/Player.cpp
     src/game/StreetEnemy.cpp
-    src/game/Scene.cpp
-    src/game/GameManager.cpp
-    src/game/ProductionGame.cpp
     src/game/Stage1StoryGame.cpp
     src/game/Stage2Game.cpp
     src/game/Stage3Game.cpp
