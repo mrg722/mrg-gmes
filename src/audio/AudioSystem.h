@@ -30,6 +30,10 @@ public:
     void Play(Sfx sfx);
     bool IsReady() const { return ready; }
 
+    // DF-013: usado por la pantalla de OPCIONES del menu principal.
+    void SetMuted(bool value) { muted = value; }
+    bool IsMuted() const { return muted; }
+
 private:
     AudioSystem() = default;
     ~AudioSystem() = default;
@@ -39,6 +43,7 @@ private:
     std::array<Sound, 15> sounds{};
     bool ready = false;
     bool deviceOwned = false;
+    bool muted = false;
 
     void BuildSound(Sfx sfx, float frequency, float duration, float volume, bool noise = false);
 };

@@ -1,4 +1,8 @@
 #include "game/Stage3Game.h"
+#include "ui/GameHUD.h"
+#include "rendering/AssetManager.h"
+#include "rendering/BossSprite.h"
+#include "rendering/Backdrop.h"
 #include "raylib.h"
 #include <algorithm>
 #include <cmath>
@@ -18,7 +22,7 @@ Color A(Color c,float a){c.a=(unsigned char)(std::clamp(a,0.0f,1.0f)*255.0f);ret
 Stage3Game::Stage3Game()=default;
 void Stage3Game::Init(){ResetRun();flow=Flow::Intro;}
 void Stage3Game::ResetRun(){
- player.Reset();player.position={180,585,0};enemies.clear();projectiles.clear();particles.clear();
+ player.Reset();player.position={180,585,0};enemies.clear();projectiles.clear();particles.clear();combatWorld.Reset();
  scenario=1;combo=maxCombo=defeated=damageTaken=score=0;stageTime=comboTimer=hitstop=shake=bannerTimer=transitionTimer=0;cameraX=640;
  arenaLocked=false;scenarioGatekeeperSpawned=false;bossSpawned=false;stageComplete=false;boss=TitanX{};
  storyMessage="Rayden enters Astra Tower. The chain network ends in the corporate command floor.";BuildScenario(1);
@@ -63,7 +67,7 @@ void Stage3Game::HandleEnemyHits(){if(player.state==PlayerState::Defeat)return;i
 void Stage3Game::HandleBossHits(){if(flow!=Flow::Boss||boss.defeated||boss.invuln>0||!player.AttackIsActive()||player.hasHit||player.attackType==AttackType::Energy)return;CombatBox hit=player.GetAttackHitbox(),target{boss.pos.x-82,boss.pos.y-150,164,150};if(!hit.Intersects(target))return;int d=player.GetAttackDamage()+(player.isRageMode?9:0);if(boss.blocking){d=std::max(1,d/6);player.velocity.x+=player.facing==Facing::Right?-150.f:150.f;SpawnImpact({boss.pos.x,boss.pos.y-90,0},{105,180,230,255},true);}else SpawnImpact({boss.pos.x,boss.pos.y-90,0},{255,175,55,255},true);boss.hp=std::max(0,boss.hp-d);boss.invuln=.11f;player.hasHit=true;++combo;comboTimer=1;maxCombo=std::max(maxCombo,combo);score+=boss.blocking?120:280+combo*12;hitstop=.11f;shake=.18f;if(boss.hp<=0)DefeatBoss();}
 void Stage3Game::UpdateCombat(float dt){
  if(comboTimer>0)comboTimer-=dt;else combo=0;player.Update(dt);if(player.state==PlayerState::Attack&&player.attackType==AttackType::Energy&&player.energyReleased){SpawnEnergyProjectile();player.energyReleased=false;}
- for(auto&e:enemies)if(e.active)e.Update(dt,player);HandlePlayerHits();UpdateProjectiles(dt);HandleEnemyHits();
+ for(auto&e:enemies)if(e.active)e.Update(dt,player,&combatWorld);HandlePlayerHits();UpdateProjectiles(dt);HandleEnemyHits();combatWorld.Update(dt);combatWorld.ResolveHazards(player,enemies);
  float left=(float)ScenarioStartX(),right=arenaLocked?(float)ScenarioEndX()-150.f:(float)ScenarioEndX();player.position.x=std::clamp(player.position.x,left,right);player.position.y=std::clamp(player.position.y,kLaneMin,kLaneMax);
  if(AllEnemiesDefeated()&&!scenarioGatekeeperSpawned){++defeated;SpawnScenarioGatekeeper();return;}if(scenarioGatekeeperSpawned&&AllEnemiesDefeated()){++defeated;AdvanceScenario();return;}if(player.state==PlayerState::Defeat)flow=Flow::GameOver;
 }
@@ -84,27 +88,62 @@ void Stage3Game::Update(float dt){
   else if(transitionTimer>0){transitionTimer-=dt;if(transitionTimer<=0)flow=Flow::Combat;}
  }else if(flow==Flow::Combat||flow==Flow::Gatekeeper){stageTime+=dt;if(bannerTimer>0)bannerTimer-=dt;if(hitstop>0)hitstop-=dt;else UpdateCombat(dt);
  }else if(flow==Flow::BossIntro||flow==Flow::Boss){stageTime+=dt;if(hitstop>0)hitstop-=dt;else{player.Update(dt);UpdateBoss(dt);UpdateProjectiles(dt);}}
- else if(flow==Flow::Clear||flow==Flow::GameOver){if(IsKeyPressed(KEY_ENTER)){ResetRun();flow=Flow::Combat;}}
+ else if(flow==Flow::Clear){if(IsKeyPressed(KEY_ENTER)||IsKeyPressed(KEY_J))advanceRequested=true;}
+ else if(flow==Flow::GameOver){if(IsKeyPressed(KEY_ENTER)){ResetRun();flow=Flow::Combat;}}
  if(comboTimer>0)comboTimer-=dt;else combo=0;UpdateParticles(dt);cameraX=std::clamp(player.position.x,640.f,5360.f);
 }
 void Stage3Game::DrawWorld()const{
- Camera2D cam{{cameraX,360},{640,360},0,1};BeginMode2D(cam);DrawRectangle(-200,0,6400,720,{6,8,18,255});DrawRectangle(-200,160,6400,300,{11,18,38,255});
+ Camera2D cam{{cameraX,360},{640,360},0,1};BeginMode2D(cam);DrawRectangle(-200,0,6400,720,{6,8,18,255});
+ // DF-013.2: fondo real por escenario; el 4o es la sala del boss.
+ DrawScenarioBackdrop(AssetManager::Get().GetTexture(TextFormat("bg_s3_%d",bossSpawned?4:std::clamp(scenario,1,3))),cameraX,0.35f);DrawRectangle(-200,160,6400,300,{11,18,38,255});
  for(int x=0;x<6200;x+=320){DrawRectangle(x,170,270,180,{15,25,48,255});DrawRectangle(x+18,195,96,72,{25,70,105,255});DrawRectangle(x+138,195,96,72,{105,42,104,255});DrawLine(x,350,x+270,350,{70,95,130,180});}
  for(int x=0;x<6200;x+=160){DrawLineEx({(float)x,365},{(float)x+80,430},4,{35,55,85,220});DrawLineEx({(float)x+80,430},{(float)x+160,365},4,{35,55,85,220});}
  DrawRectangle(-200,430,6400,220,{9,12,22,255});DrawRectangle(-200,645,6400,75,{3,5,10,255});
  for(int x=0;x<6200;x+=240){DrawRectangle(x,455,12,170,{45,55,80,255});DrawRectangle(x+55,470,170,9,{100,40,115,220});DrawCircle(x+30,445,5,{70,220,255,220});}
+ combatWorld.DrawGround();
  for(const auto&p:particles)DrawCircleV({p.pos.x,p.pos.y-p.pos.z},p.size,A(p.color,p.life/p.maxLife));
  for(const auto&p:projectiles){Color c=p.fromBoss?Color{255,65,190,255}:Color{60,220,255,255};DrawCircleV({p.pos.x,p.pos.y-70},p.radius,A(c,.9f));DrawCircleV({p.pos.x,p.pos.y-70},p.radius*.42f,{245,245,255,255});}
+ combatWorld.DrawEffects();
  for(const auto&e:enemies)if(e.active)e.Draw();if(!bossSpawned||!boss.defeated)player.Draw();if(bossSpawned&&(flow==Flow::BossIntro||flow==Flow::Boss))DrawBoss();EndMode2D();
 }
-void Stage3Game::DrawBoss()const{if(!bossSpawned||boss.defeated)return;float x=boss.pos.x,y=boss.pos.y-75;Color core=boss.phase==3?Color{255,55,175,255}:boss.phase==2?Color{125,105,255,255}:Color{65,215,255,255};if(boss.blocking)DrawCircleV({x,y},105,A({90,170,255,255},.22f));DrawRectangle((int)x-62,(int)y-75,124,150,{32,40,62,255});DrawRectangle((int)x-48,(int)y-95,96,28,{55,65,92,255});DrawRectangle((int)x-38,(int)y-67,76,45,{14,18,30,255});DrawCircle((int)x,(int)y-45,16,core);DrawRectangle((int)x-88,(int)y-55,24,95,{48,58,82,255});DrawRectangle((int)x+64,(int)y-55,24,95,{48,58,82,255});DrawRectangle((int)x-48,(int)y+72,34,52,{42,48,68,255});DrawRectangle((int)x+14,(int)y+72,34,52,{42,48,68,255});DrawLineEx({x-80,y+115},{x-48,y+150},10,core);DrawLineEx({x+80,y+115},{x+48,y+150},10,core);}
+// DF-013.2: Titan-X (prototipo, Stage 3) ahora se dibuja con el sprite real
+// aportado por el usuario en vez de las primitivas raylib originales. La
+// pose se elige a partir del estado real del boss (blocking/invuln/
+// attackTimer); este boss no tiene una ventana de "ataque activo" separada
+// (resuelve el ataque instantaneo en UpdateBoss), asi que no hay una pose
+// de ataque sostenida que mostrar con precision — se aproxima con "lean"
+// justo antes de que se cumpla el temporizador. Ver docs/AUTONOMOUS_PROGRESS.md.
+void Stage3Game::DrawBoss()const{
+    if(!bossSpawned||boss.defeated)return;
+    const float x=boss.pos.x,y=boss.pos.y;
+    const bool flip=player.position.x>boss.pos.x;
+    if(boss.blocking)DrawCircleV({x,y-95},105,A({90,170,255,255},.22f));
+    const char* pose="idle1";
+    if(boss.invuln>.08f)pose="recoil";
+    else if(!boss.blocking&&boss.attackTimer<=.15f)pose="lean";
+    else{
+        const int cycle=((int)(boss.elapsed*1.6f))%4;
+        pose=cycle==0?"idle1":cycle==1?"idle2":cycle==2?"idle3":"idle4";
+    }
+    Texture2D tex=AssetManager::Get().GetTexture(std::string("titanx_")+pose);
+    Color tint=boss.invuln>0?Color{255,180,180,255}:WHITE;
+    // Titan-X (prototipo) es notoriamente mas grande que Rayden pero NO la
+    // forma XL (canon confirmado por las hojas de referencia del usuario:
+    // "aun es un prototipo... pero ya no es humano").
+    DrawBossPose(tex,{x,y},170.f,flip,tint);
+}
 void Stage3Game::DrawHUD()const{
  DrawRectangle(18,16,430,88,{5,8,16,225});DrawText("DISTRICT FURY // ASTRA TOWER",32,27,18,{180,220,235,255});DrawText(ScenarioName(),32,51,15,{255,115,205,255});DrawText(ScenarioObjective(),32,73,13,{195,205,220,255});
- DrawRectangle(32,120,250,18,{25,28,38,255});DrawRectangle(32,120,(int)(250.f*std::max(0.f,(float)player.hp/player.maxHp)),18,{70,210,120,255});DrawText(TextFormat("HP %d / %d",player.hp,player.maxHp),38,121,12,RAYWHITE);DrawRectangle(32,144,250,12,{25,28,38,255});DrawRectangle(32,144,(int)(250.f*std::max(0.f,(float)player.rage/player.maxRage)),12,{255,85,180,255});
+ // DF-013.2: antes esta zona solo dibujaba HP y Rage sueltos, sin panel ni
+ // Shield/SP (inconsistente con Stage1/Stage2/VS). Se reemplaza por el
+ // panel compartido, que agrega Shield/SP/retrato faltantes. El combo
+ // propio de este stage (mas abajo, "%d HIT") se conserva y se apaga el
+ // combo interno del panel compartido para no duplicarlo.
+ {ui::PlayerVitals vitals{};vitals.hp=player.hp;vitals.maxHp=player.maxHp;vitals.shield=player.shield;vitals.maxShield=player.maxShield;vitals.sp=player.sp;vitals.maxSp=player.maxSp;vitals.rage=player.rage;vitals.maxRage=player.maxRage;vitals.isRageMode=player.isRageMode;vitals.combo=0;vitals.title="RAYDEN CRUZ // ASTRA TOWER";vitals.x=18;vitals.y=110;vitals.width=430;vitals.panelHeight=96;ui::DrawPlayerVitals(vitals);}
  if(combo>1){DrawText(TextFormat("%d HIT",combo),1050,112,30,{255,205,75,255});DrawText(TextFormat("MAX %d",maxCombo),1060,143,13,{210,220,235,255});}DrawText(TextFormat("SCORE %06d",score),1040,24,16,{240,240,245,255});DrawText(TextFormat("TIME %05.1f",stageTime),1040,46,13,{170,190,210,255});DrawText(TextFormat("DIFF %s",DifficultyText()),1040,66,12,{170,190,210,255});
  if(bossSpawned&&(flow==Flow::BossIntro||flow==Flow::Boss)){DrawRectangle(380,18,520,54,{7,8,18,230});DrawText("TITAN-X // ASTRA CORE",515,25,20,{255,90,190,255});DrawRectangle(430,51,420,12,{28,30,42,255});DrawRectangle(430,51,(int)(420.f*std::max(0.f,(float)boss.hp/boss.maxHp)),12,{95,190,255,255});DrawText(TextFormat("PHASE %d",boss.phase),875,49,12,{190,205,220,255});}
 }
-void Stage3Game::DrawClear()const{DrawRectangle(0,0,1280,720,{4,7,14,235});DrawText("ASTRA TOWER // CLEARED",355,135,34,{80,225,255,255});DrawText("TITAN-X has been shut down.",475,190,18,{225,230,240,255});float r=score+maxCombo*120.f-damageTaken*3.f-stageTime*2.f;const char*rank=r>12000?"SSS":r>9000?"SS":r>7000?"S":r>5000?"A":r>3500?"B":r>2000?"C":"D";DrawText(TextFormat("RANK %s",rank),550,255,42,{255,205,75,255});DrawText(TextFormat("SCORE %06d",score),525,330,18,RAYWHITE);DrawText(TextFormat("MAX COMBO %d",maxCombo),520,360,16,{205,215,230,255});DrawText(TextFormat("DAMAGE TAKEN %d",damageTaken),515,390,16,{205,215,230,255});DrawText("ENTER  RESTART",535,485,16,{185,205,220,255});}
+void Stage3Game::DrawClear()const{DrawRectangle(0,0,1280,720,{4,7,14,235});DrawText("ASTRA TOWER // CLEARED",355,135,34,{80,225,255,255});DrawText("TITAN-X has been shut down.",475,190,18,{225,230,240,255});float r=score+maxCombo*120.f-damageTaken*3.f-stageTime*2.f;const char*rank=r>12000?"SSS":r>9000?"SS":r>7000?"S":r>5000?"A":r>3500?"B":r>2000?"C":"D";DrawText(TextFormat("RANK %s",rank),550,255,42,{255,205,75,255});DrawText(TextFormat("SCORE %06d",score),525,330,18,RAYWHITE);DrawText(TextFormat("MAX COMBO %d",maxCombo),520,360,16,{205,215,230,255});DrawText(TextFormat("DAMAGE TAKEN %d",damageTaken),515,390,16,{205,215,230,255});DrawText("ENTER — STAGE 4: KESSLER TOWER",455,485,16,{185,205,220,255});}
 void Stage3Game::DrawOverlay()const{
  if(flow==Flow::Intro){DrawRectangle(0,0,1280,720,{4,6,14,225});DrawText("DISTRICT FURY",465,110,42,{230,235,245,255});DrawText("STAGE 3 // ASTRA TOWER",440,168,24,{255,90,190,255});DrawText(storyMessage,230,230,18,{205,215,230,255});if(scenario==1&&transitionTimer<=0){DrawText("1 EASY    2 NORMAL    3 HARD",475,305,17,{170,195,215,255});DrawText(TextFormat("SELECTED: %s",DifficultyText()),545,340,18,{80,220,255,255});DrawText("ENTER  START",535,440,20,RAYWHITE);}else DrawText("TRANSITIONING...",525,350,18,{80,220,255,255});DrawText("WASD MOVE   J PUNCH   K KICK   L ENERGY   SHIFT DASH   SPACE RAGE",265,555,13,{165,180,200,255});}
  else if(flow==Flow::Gatekeeper){DrawRectangle(280,270,720,120,{5,8,16,225});DrawText("GATEKEEPER",530,292,25,{255,120,190,255});DrawText(storyMessage,350,335,15,{210,220,235,255});}

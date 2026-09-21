@@ -1,4 +1,4 @@
-# Build outputs
+﻿# Build outputs
 /build/
 /build-*/
 /out/
@@ -13,6 +13,7 @@
 /_deps/
 /.cache/
 /.tooling/
+/.raylib-src/
 
 # IDEs and editors
 /.vs/
@@ -35,4 +36,18 @@
 *.dylib
 *.dSYM/
 
+# Local build/debug logs
+build.log
+build_exit.txt
+configure.log
+configure_exit.txt
+exe_path.txt
+configure_validate_cfg.txt
+configure_validate_meta.txt
+build_validate_cfg.txt
+build_validate_build.txt
+
 district_fury_save.dat
+# Python cache
+__pycache__/
+*.py[cod]

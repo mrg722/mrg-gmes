@@ -3,11 +3,15 @@
 Videojuego 2D beat'em up / brawler original desarrollado en C++17 y raylib.
 
 ## Estado actual
-La campaña jugable contiene tres etapas conectadas mediante el ejecutable principal:
+La campaña contiene cinco stages (seleccionables con F1–F5; el encadenamiento automático entre stages todavía no está implementado):
 
-- **Stage 1 — Slum District:** cuatro escenarios narrativos, gatekeepers y Brakk "The Chain".
-- **Stage 2 — Old Steel Yard:** Deep Line, roster químico/industrial y Grinder.
-- **Stage 3 — Astra Tower:** Public Atrium, Research Floor, Executive Core y Titan-X.
+- **Stage 1 — Slum District:** cuatro escenarios narrativos, gatekeepers y Brakk "The Chain" (sprite real, 14 poses).
+- **Stage 2 — Old Steel Yard:** Deep Line, roster químico/industrial y Grinder (sprite real, 7 poses).
+- **Stage 3 — Astra Tower:** Public Atrium, Research Floor, Executive Core y Titan-X (prototipo, sprite real).
+- **Stage 4 — Kessler Tower:** guardias de élite y Titan-X Mejorado (forma final, sprite real). Intro con el Dr. Kessler (NPC narrativo, no combate).
+- **Stage 5 — Cámara del Clon:** duelo final contra Rayder Clone (sprite real). Intro con el Dr. Kessler.
+
+Estado detallado, verificado y pendiente: `docs/FINAL_REPORT.md` y `docs/AUTONOMOUS_PROGRESS.md`.
 
 La base técnica incluye mundo horizontal, cámara 2D, combate con hitboxes/hurtboxes, combos, proyectiles, hitstop, partículas, dificultad y flujos de victoria/derrota/pausa.
 
@@ -21,10 +25,12 @@ La secuencia común es **0–3 idle**, **4–7 ataque**, **8–9 impacto** y **1
 
 Desde el menú principal se pulsa **V** para entrar a un laboratorio aislado. Permite seleccionar:
 
-- Stage 1, Stage 2 o Stage 3.
+- Stage 1 a Stage 5.
 - El escenario disponible de cada Stage.
 - Entre 1 y 4 enemigos simultáneos.
 - El tipo independiente de cada enemigo entre los ocho `StreetEnemyType`.
+- **PERSONAJE:** Rayden original (por defecto) o Rayden clon. El clon solo cambia el aspecto: stats, ataques y hitboxes son idénticos.
+- **BOSS:** Brakk, Grinder, Titan-X, Titan-X Mejorado o Rayder Clone en duelo 1 vs 1, usando la clase compartida `Boss` + `BossDefinition` (`src/game/combat/`).
 
 El laboratorio utiliza las mismas clases de runtime (`Player`, `StreetEnemy` y `AssetManager`) para que escala, animaciones, pivotes, hitboxes, hurtboxes y barras se comprueben sobre el juego real.
 

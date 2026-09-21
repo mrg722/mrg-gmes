@@ -4,7 +4,7 @@
 from PIL import Image
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 # List of PNG files that need to be converted to RGBA
 ASSETS_TO_FIX = [
