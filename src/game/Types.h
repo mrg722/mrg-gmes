@@ -39,9 +39,18 @@ struct CombatBox {
 
 constexpr float kStageStartX = 90.0f;
 constexpr float kStageEndX = 6000.0f;
-constexpr float kLaneMinY = 485.0f;
-constexpr float kLaneMaxY = 650.0f;
+constexpr float kLaneMinY = 505.0f;
+constexpr float kLaneMaxY = 625.0f;
 constexpr float kGroundY = 650.0f;
+constexpr float kLaneSpan = kLaneMaxY - kLaneMinY;
+
+// Escala de profundidad canonica. Vivia duplicada en Player.cpp y StreetEnemy.cpp
+// con rangos distintos a los carriles reales (DF-013 D6).
+inline float DepthScaleFor(float y) {
+    const float t = (y - kLaneMinY) / kLaneSpan;
+    const float clamped = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    return 0.86f + 0.26f * clamped;
+}
 constexpr float kViewportWidth = 1280.0f;
 constexpr float kViewportHeight = 720.0f;
 

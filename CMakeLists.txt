@@ -10,26 +10,48 @@ include(FetchContent)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG c1ab645ca298a2801097931d1079b10ff7eb9df8
-)
+
+set(RAYLIB_COMMIT c1ab645ca298a2801097931d1079b10ff7eb9df8)
+set(RAYLIB_ZIP_URL "https://github.com/raysan5/raylib/archive/${RAYLIB_COMMIT}.zip")
+set(RAYLIB_ZIP_SHA256 "94e2dc09267d8f05f3eca73f4c7f91b86a0d7a7a02e1befd26d15a31d2281d5a")
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.raylib-src/CMakeLists.txt")
+    FetchContent_Declare(
+        raylib
+        SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.raylib-src"
+    )
+else()
+    FetchContent_Declare(
+        raylib
+        URL ${RAYLIB_ZIP_URL}
+        DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+    )
+endif()
+
 FetchContent_MakeAvailable(raylib)
 
 add_library(district_fury_core
     src/audio/AudioSystem.cpp
     src/core/ApplicationState.cpp
+    src/game/combat/AttackData.cpp
+    src/game/combat/Boss.cpp
+    src/game/combat/BossDefinition.cpp
+    src/game/combat/CombatWorld.cpp
+    src/game/enemies/EnemyBrain.cpp
+    src/game/Campaign.cpp
+    src/game/CharacterVisual.cpp
     src/game/Player.cpp
     src/game/StreetEnemy.cpp
-    src/game/Scene.cpp
-    src/game/GameManager.cpp
-    src/game/ProductionGame.cpp
     src/game/Stage1StoryGame.cpp
     src/game/Stage2Game.cpp
     src/game/Stage3Game.cpp
+    src/game/Stage4Game.cpp
+    src/game/Stage5Game.cpp
     src/game/VSMode.cpp
+    src/game/npc/KesslerCameo.cpp
     src/rendering/AssetManager.cpp
+    src/ui/MainMenu.cpp
+    src/ui/GameHUD.cpp
 )
 target_include_directories(district_fury_core PUBLIC src)
 target_link_libraries(district_fury_core PUBLIC raylib)

@@ -67,7 +67,7 @@ void AudioSystem::BuildSound(Sfx sfx, float frequency, float duration, float vol
 }
 
 void AudioSystem::Play(Sfx sfx) {
-    if (!ready) return;
+    if (!ready || muted) return;
     Sound& sound = sounds[Index(sfx)];
     if (sound.frameCount > 0) PlaySound(sound);
 }

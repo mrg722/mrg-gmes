@@ -1,21 +1,14 @@
 #pragma once
 #include "game/Player.h"
 #include "game/StreetEnemy.h"
+#include "game/combat/CombatWorld.h"
+#include "game/combat/Boss.h"
 #include <array>
 #include <vector>
 
 namespace district_fury {
 
 enum class VSFlow { Select, Fight };
-
-struct VSEnergyProjectile {
-    Vector3D position;
-    float velocity;
-    float life;
-    float radius;
-    int damage;
-    bool active;
-};
 
 class VSMode {
 public:
@@ -31,6 +24,14 @@ private:
     int stage{0};
     int scenario{0};
     int enemyCount{1};
+    // DF-013.2: -1 = sin boss (pelea normal contra enemigos de calle);
+    // 0..4 = BossId (Brakk/Grinder/TitanX/TitanXMejorado/RayderClone).
+    // Primer consumidor real de la clase Boss/BossDefinition compartida
+    // (ver src/game/combat/Boss.h y ARCHITECTURE.md).
+    int selectedBoss{-1};
+    // DF-013.2 (19-09): personaje del jugador en VS. 0 = Rayden ORIGINAL
+    // (por defecto, intacto), 1 = Rayden clon. Ver Player::skin.
+    int selectedCharacter{0};
     int cursor{0};
     bool exitRequested{false};
     bool playerDefeated{false};
@@ -42,14 +43,18 @@ private:
         StreetEnemyType::Enforcer
     };
     std::vector<StreetEnemy> enemies;
-    std::vector<VSEnergyProjectile> projectiles;
+    // DF-013.2: mismo cableado aditivo de CombatWorld que en los 3 stages
+    // (ver docs/AUTONOMOUS_PROGRESS.md) — VS pasa a compartir el mismo
+    // sistema de hazards/impactos, no una implementacion aparte.
+    CombatWorld combatWorld;
+    Boss boss;
+    std::vector<BossProjectile> bossProjectiles;
+    float hitstop{0.0f};
     float shake{0.0f};
 
     void ResetFight();
     void StartFight();
     void UpdateFight(float dt);
-    void SpawnEnergyProjectile();
-    void UpdateProjectiles(float dt);
     void DrawSelection() const;
     void DrawFight() const;
     void DrawBackground() const;

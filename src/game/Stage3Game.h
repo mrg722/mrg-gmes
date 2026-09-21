@@ -1,6 +1,7 @@
 #pragma once
 #include "game/Player.h"
 #include "game/StreetEnemy.h"
+#include "game/combat/CombatWorld.h"
 #include <vector>
 
 namespace district_fury {
@@ -10,6 +11,11 @@ public:
     void Init();
     void Update(float dt);
     void Draw() const;
+    // DF-013.2: acceso al jugador para aplicar las mejoras de campana antes
+    // de Init(). No cambia nada del comportamiento existente.
+    Player& PlayerRef() { return player; }
+    bool StageCleared() const { return flow == Flow::Clear; }
+    bool ConsumeAdvance() { const bool a = advanceRequested; advanceRequested = false; return a; }
 private:
     struct Projectile { Vector3D pos; float vx; float life; float radius; int damage; bool fromBoss; bool active; };
     struct Particle { Vector3D pos; Vector2 vel; float life; float maxLife; float size; Color color; };
@@ -22,6 +28,9 @@ private:
     enum class Difficulty { Easy, Normal, Hard };
     Player player;
     std::vector<StreetEnemy> enemies;
+    // DF-013.2: mismo cableado aditivo de CombatWorld (ver
+    // docs/AUTONOMOUS_PROGRESS.md).
+    CombatWorld combatWorld;
     std::vector<Projectile> projectiles;
     std::vector<Particle> particles;
     TitanX boss;
@@ -29,7 +38,8 @@ private:
     Difficulty difficulty{Difficulty::Normal};
     int scenario{1}; int combo{0}; int maxCombo{0}; int defeated{0}; int damageTaken{0}; int score{0};
     float stageTime{0}; float comboTimer{0}; float hitstop{0}; float shake{0}; float bannerTimer{0}; float transitionTimer{0}; float cameraX{640};
-    bool arenaLocked{false}; bool scenarioGatekeeperSpawned{false}; bool bossSpawned{false}; bool stageComplete{false};
+    bool arenaLocked{false};
+    bool advanceRequested{false}; bool scenarioGatekeeperSpawned{false}; bool bossSpawned{false}; bool stageComplete{false};
     const char* storyMessage{"Rayden enters Astra Tower. The chain network ends in the corporate command floor."};
     void ResetRun(); void BuildScenario(int id); void SpawnScenarioGatekeeper(); void AdvanceScenario(); void EnterBoss(); void DefeatBoss(); void ApplyDifficulty();
     bool AllEnemiesDefeated() const; int ScenarioStartX() const; int ScenarioEndX() const; const char* ScenarioName() const; const char* ScenarioObjective() const; const char* DifficultyText() const;
